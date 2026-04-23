@@ -46,4 +46,8 @@ public class Validators {
             throw new IllegalArgumentException("L'entità " + nomeCampo + " non può essere nulla o mancante.");
         }
     }
+
+    public static void test ( ){ 
+        //test ( non serve a nulla )
+    } 
 }
