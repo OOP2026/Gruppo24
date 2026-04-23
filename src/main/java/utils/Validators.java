@@ -47,7 +47,4 @@ public class Validators {
         }
     }
 
-    public static void test ( ){ 
-        //test ( non serve a nulla )
-    } 
 }
