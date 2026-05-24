@@ -2,6 +2,7 @@ package model;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import utils.Validators;
 
@@ -49,6 +50,11 @@ public class Ricovero {
         this.prestazioniRicevute.add(nuovaPrestazione);
 
     }
+
+    public List<Prestazione> getPrestazioniRicevute() {
+        return Collections.unmodifiableList(prestazioniRicevute);
+    }
+
 
     public void correggiDataInizio(LocalDateTime nuovaDataInizio) {
 
