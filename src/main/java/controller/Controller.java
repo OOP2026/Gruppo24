@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
  */
 public class Controller {
 
-    // ─── Data stores in-memory ──────────────────────────────────────────────
+
     private final List<Utente>   utenti    = new ArrayList<>();
     private final List<Reparto>  reparti   = new ArrayList<>();
     private final List<Paziente> pazienti  = new ArrayList<>();
@@ -24,9 +24,8 @@ public class Controller {
         inizializzaDatiDemo();
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // AUTH
-    // ════════════════════════════════════════════════════════════════════════
+
+
 
     /** Tenta il login. Restituisce l'utente se le credenziali sono valide, null altrimenti. */
     public Utente login(String login, String password) {
@@ -45,14 +44,11 @@ public class Controller {
     public boolean isAmministratore()   { return utenteCorrente instanceof Amministratore; }
     public boolean isMedico()           { return utenteCorrente instanceof Medico; }
 
-    /** Restituisce il medico corrente (null se l'utente non è un medico). */
+
     public Medico getMedicoCorrente() {
         return (utenteCorrente instanceof Medico) ? (Medico) utenteCorrente : null;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // STRUTTURA OSPEDALIERA (Reparti / Stanze / Letti)
-    // ════════════════════════════════════════════════════════════════════════
 
     public List<Reparto> getReparti() { return Collections.unmodifiableList(reparti); }
 

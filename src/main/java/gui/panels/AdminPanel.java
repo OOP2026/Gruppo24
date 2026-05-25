@@ -33,18 +33,16 @@ public class AdminPanel extends JPanel {
         this.controller = controller;
         setLayout(new BorderLayout());
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
-        tabs.addTab("👤 Pazienti",   buildPazientiPanel());
-        tabs.addTab("🛏 Ricoveri",   buildRicoveriPanel());
-        tabs.addTab("🔴 Letti",      buildLettiPanel());
-        tabs.addTab("📅 Dimissioni", buildDimissioniPanel());
-        tabs.addTab("🩺 Medici",     buildMediciPanel());
-        tabs.addTab("🤒 Malattia",   buildMalattiaPanel());
+        tabs.addTab("+Pazienti",   buildPazientiPanel());
+        tabs.addTab("+Ricoveri",   buildRicoveriPanel());
+        tabs.addTab("+Malattia",   buildMalattiaPanel());
+        tabs.addTab("-Letti",      buildLettiPanel());
+        tabs.addTab("-Medici",     buildMediciPanel());
+        tabs.addTab("-Dimissioni", buildDimissioniPanel());
         add(tabs, BorderLayout.CENTER);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 1 – PAZIENTI
-    // ════════════════════════════════════════════════════════════════════════
+
 
     private JPanel buildPazientiPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -82,7 +80,7 @@ public class AdminPanel extends JPanel {
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         formPanel.add(btnPanel, gbc);
 
-        // Selezione riga → popola form
+
         table.getSelectionModel().addListSelectionListener(e -> {
             int row = table.getSelectedRow();
             if (row < 0) return;
@@ -137,9 +135,7 @@ public class AdminPanel extends JPanel {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 2 – RICOVERI
-    // ════════════════════════════════════════════════════════════════════════
+
 
     private JPanel buildRicoveriPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -152,7 +148,7 @@ public class AdminPanel extends JPanel {
         JTable table = new JTable(model);
         refreshRicoveri(model);
 
-        // ── Form nuovo ricovero ──────────────────────────────────────────────
+
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBorder(BorderFactory.createTitledBorder("Nuovo Ricovero"));
         GridBagConstraints gbc = new GridBagConstraints();
@@ -165,7 +161,7 @@ public class AdminPanel extends JPanel {
         JTextField          inizioField   = new JTextField("dd/MM/yyyy HH:mm", 16);
         JTextField          fineField     = new JTextField("dd/MM/yyyy HH:mm (facoltativo)", 22);
 
-        // Aggiorna letti al cambio reparto
+
         repartoCombo.addActionListener(e -> {
             lettoCombo.removeAllItems();
             Reparto r = (Reparto) repartoCombo.getSelectedItem();
@@ -250,9 +246,6 @@ public class AdminPanel extends JPanel {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 3 – LETTI (disponibilità in tempo reale)
-    // ════════════════════════════════════════════════════════════════════════
 
     private JPanel buildLettiPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -296,18 +289,14 @@ public class AdminPanel extends JPanel {
         top.add(repartoCombo);
         top.add(refreshBtn);
 
-        JLabel legend = new JLabel("  🟢 Disponibile   🔴 Occupato");
-        legend.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        top.add(legend);
+//magari aggiungere che quando il cursore è sul letto questo fa qualcosa(es."disponibile/occupato" in casella testo)
 
         panel.add(top,    BorderLayout.NORTH);
         panel.add(scroll, BorderLayout.CENTER);
         return panel;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 4 – DIMISSIONI IN SCADENZA
-    // ════════════════════════════════════════════════════════════════════════
+
 
     private JPanel buildDimissioniPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -362,9 +351,6 @@ public class AdminPanel extends JPanel {
         return panel;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 5 – MEDICI
-    // ════════════════════════════════════════════════════════════════════════
 
     private JPanel buildMediciPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -400,9 +386,7 @@ public class AdminPanel extends JPanel {
         return panel;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 6 – MALATTIA
-    // ════════════════════════════════════════════════════════════════════════
+
 
     private JPanel buildMalattiaPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 10));
@@ -428,7 +412,7 @@ public class AdminPanel extends JPanel {
         gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
         formPanel.add(registraBtn, gbc);
 
-        // ── Area risultati ───────────────────────────────────────────────────
+
         JTextArea risultatiArea = new JTextArea(12, 40);
         risultatiArea.setEditable(false);
         risultatiArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
@@ -488,9 +472,6 @@ public class AdminPanel extends JPanel {
         return panel;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // UTILITY
-    // ════════════════════════════════════════════════════════════════════════
 
     private JComboBox<Paziente> buildPazienteCombo() {
         JComboBox<Paziente> cb = new JComboBox<>();

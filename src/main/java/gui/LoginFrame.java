@@ -6,15 +6,13 @@ import model.Utente;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Finestra di login. Creata con Swing (equivalente al codice generato da Swing UI Designer).
- * Realizzata come JFrame autonomo: si chiude dopo il login riuscito e apre MainFrame.
- */
+
+
 public class LoginFrame extends JFrame {
 
     private final Controller controller;
 
-    // ── Componenti UI (dichiarati come campi come da Swing UI Designer) ──────
+
     private JPanel  rootPanel;
     private JLabel  titleLabel;
     private JLabel  loginLabel;
@@ -34,13 +32,12 @@ public class LoginFrame extends JFrame {
         rootPanel = new JPanel(new BorderLayout(0, 10));
         rootPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 20, 40));
 
-        // ── Titolo ───────────────────────────────────────────────────────────
-        titleLabel = new JLabel("Sistema Gestione Ospedale", SwingConstants.CENTER);
+        titleLabel = new JLabel("Acesso Utente Ospedale", SwingConstants.CENTER);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
         rootPanel.add(titleLabel, BorderLayout.NORTH);
 
-        // ── Form centrale ────────────────────────────────────────────────────
+
         JPanel formPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(6, 6, 6, 6);
@@ -64,7 +61,7 @@ public class LoginFrame extends JFrame {
 
         rootPanel.add(formPanel, BorderLayout.CENTER);
 
-        // ── Bottom ───────────────────────────────────────────────────────────
+
         JPanel bottomPanel = new JPanel(new BorderLayout(0, 4));
 
         loginButton = new JButton("Accedi");
@@ -79,14 +76,14 @@ public class LoginFrame extends JFrame {
 
         rootPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // ── Hint credenziali demo ─────────────────────────────────────────────
+
         JLabel hint = new JLabel(
             "<html><small><i>Demo: admin/admin123 · dr.rossi/pass123 · dr.bianchi/pass789</i></small></html>",
             SwingConstants.CENTER);
         hint.setForeground(Color.GRAY);
         bottomPanel.add(hint, BorderLayout.CENTER);
 
-        // ── Listener ─────────────────────────────────────────────────────────
+
         loginButton.addActionListener(e -> handleLogin());
         passwordField.addActionListener(e -> handleLogin());
         getRootPane().setDefaultButton(loginButton);

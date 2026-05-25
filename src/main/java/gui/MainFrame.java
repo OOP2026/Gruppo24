@@ -8,10 +8,7 @@ import model.Medico;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Finestra principale dell'applicazione.
- * Mostra AdminPanel o MedicoPanel in base al ruolo dell'utente loggato.
- */
+
 public class MainFrame extends JFrame {
 
     private final Controller controller;
@@ -25,11 +22,11 @@ public class MainFrame extends JFrame {
     private void buildUI() {
         JPanel rootPanel = new JPanel(new BorderLayout());
 
-        // ── Barra superiore ──────────────────────────────────────────────────
+
         JPanel topBar = buildTopBar();
         rootPanel.add(topBar, BorderLayout.NORTH);
 
-        // ── Pannello principale in base al ruolo ─────────────────────────────
+
         JPanel mainPanel;
         if (controller.isAmministratore()) {
             mainPanel = new AdminPanel(controller);
@@ -46,11 +43,10 @@ public class MainFrame extends JFrame {
         topBar.setBackground(new Color(41, 128, 185));
         topBar.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
 
-        // Nome utente a sinistra
         String nomeUtente;
         if (controller.isMedico()) {
             Medico m = controller.getMedicoCorrente();
-            nomeUtente = "Dr. " + m.getNome() + " " + m.getCognome()
+            nomeUtente = m.getNome() + " " + m.getCognome()
                     + " – " + m.getReparto().getNome();
         } else {
             nomeUtente = "Amministratore: " + controller.getUtenteCorrente().getLogin();
@@ -60,13 +56,13 @@ public class MainFrame extends JFrame {
         userLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
         topBar.add(userLabel, BorderLayout.WEST);
 
-        // Titolo al centro
-        JLabel titleLabel = new JLabel("Gestione Ospedale", SwingConstants.CENTER);
+        //
+        JLabel titleLabel = new JLabel("Ospedale", SwingConstants.CENTER);
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         topBar.add(titleLabel, BorderLayout.CENTER);
 
-        // Bottone logout a destra
+        // logout
         JButton logoutBtn = new JButton("Logout");
         logoutBtn.addActionListener(e -> handleLogout());
         topBar.add(logoutBtn, BorderLayout.EAST);

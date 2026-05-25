@@ -12,14 +12,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Pannello principale per il ruolo Medico.
- * Contiene un JTabbedPane con 4 tab:
- *   1. Agenda Giornaliera  – prestazioni di un dato giorno
- *   2. Agenda Settimanale  – vista a 7 giorni
- *   3. Nuova Prestazione   – form per registrare una prestazione
- *   4. Modifica Esiti      – compilare/modificare l'esito delle prestazioni
- */
+
 public class MedicoPanel extends JPanel {
 
     private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -34,17 +27,14 @@ public class MedicoPanel extends JPanel {
         this.medicoCorrente = controller.getMedicoCorrente();
         setLayout(new BorderLayout());
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
-        tabs.addTab("📆 Agenda Giornaliera",  buildAgendaGiornalieraPanel());
-        tabs.addTab("🗓 Agenda Settimanale",  buildAgendaSettimanalePanel());
-        tabs.addTab("➕ Nuova Prestazione",   buildNuovaPrestazionePanel());
-        tabs.addTab("✏ Modifica Esiti",       buildModificaEsitiPanel());
+        tabs.addTab(" Agenda Giornaliera",  buildAgendaGiornalieraPanel());
+        tabs.addTab(" Agenda Settimanale",  buildAgendaSettimanalePanel());
+        tabs.addTab(" + Nuova Prestazione",   buildNuovaPrestazionePanel());
+        tabs.addTab("- Modifica Esiti",       buildModificaEsitiPanel());
         add(tabs, BorderLayout.CENTER);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 1 – AGENDA GIORNALIERA
-    // ════════════════════════════════════════════════════════════════════════
-
+   //Agenda medico
     private JPanel buildAgendaGiornalieraPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -101,7 +91,6 @@ public class MedicoPanel extends JPanel {
         dataField.addActionListener(e -> {
             try {
                 DayOfWeek giorno = LocalDate.parse(dataField.getText().trim(), DATE_FMT).getDayOfWeek();
-                // aggiorna label dinamicamente sarebbe complesso, mostra turni fissi
             } catch (Exception ignored) {}
         });
         top.add(Box.createHorizontalStrut(20));
@@ -124,15 +113,12 @@ public class MedicoPanel extends JPanel {
         return new JLabel(sb.toString());
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 2 – AGENDA SETTIMANALE
-    // ════════════════════════════════════════════════════════════════════════
 
     private JPanel buildAgendaSettimanalePanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Inizio settimana = lunedì della settimana corrente
+
         LocalDate oggi    = LocalDate.now();
         LocalDate lunedi  = oggi.minusDays(oggi.getDayOfWeek().getValue() - 1);
 
@@ -141,7 +127,7 @@ public class MedicoPanel extends JPanel {
         JButton  nextBtn    = new JButton("Succ ▶");
         final LocalDate[]  settimana  = {lunedi};
 
-        // Tabella: colonne = 7 giorni, righe = prestazioni (max per slot)
+
         String[] giorni = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"};
         DefaultTableModel tableModel = new DefaultTableModel(giorni, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -154,7 +140,7 @@ public class MedicoPanel extends JPanel {
                     controller.getAgendaSettimanale(medicoCorrente, settimana[0]);
             tableModel.setRowCount(0);
 
-            // Trova max prestazioni in un giorno
+
             int maxRighe = agenda.values().stream()
                     .mapToInt(List::size).max().orElse(0);
             if (maxRighe == 0) maxRighe = 1;
@@ -200,9 +186,6 @@ public class MedicoPanel extends JPanel {
         return "Settimana: " + lunedi.format(DATE_FMT) + " – " + lunedi.plusDays(6).format(DATE_FMT);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 3 – NUOVA PRESTAZIONE
-    // ════════════════════════════════════════════════════════════════════════
 
     private JPanel buildNuovaPrestazionePanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -214,7 +197,7 @@ public class MedicoPanel extends JPanel {
         gbc.insets  = new Insets(6, 6, 6, 6);
         gbc.fill    = GridBagConstraints.HORIZONTAL;
 
-        // Combo ricoveri in corso
+
         JComboBox<Ricovero> ricoveroCombo = buildRicoveroCombo();
         JTextField inizioField  = new JTextField("dd/MM/yyyy HH:mm", 16);
         JTextField fineField    = new JTextField("dd/MM/yyyy HH:mm", 16);
@@ -225,7 +208,7 @@ public class MedicoPanel extends JPanel {
         addRow(formPanel, gbc, 2, "Fine:",                fineField);
         addRow(formPanel, gbc, 3, "Tipo:",                tipoCombo);
 
-        // Mostra turni del medico come riferimento
+        // Mostra turni del medico
         JTextArea turniInfo = new JTextArea(4, 30);
         turniInfo.setEditable(false);
         turniInfo.setFont(new Font("Monospaced", Font.PLAIN, 11));
@@ -277,9 +260,7 @@ public class MedicoPanel extends JPanel {
         return panel;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TAB 4 – MODIFICA ESITI
-    // ════════════════════════════════════════════════════════════════════════
+
 
     private JPanel buildModificaEsitiPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -306,7 +287,7 @@ public class MedicoPanel extends JPanel {
         };
         refreshEsiti.run();
 
-        // ── Editor esito ─────────────────────────────────────────────────────
+      //esiti
         JPanel editPanel = new JPanel(new BorderLayout(5, 5));
         editPanel.setBorder(BorderFactory.createTitledBorder("Compila / Modifica Esito"));
 
@@ -316,7 +297,7 @@ public class MedicoPanel extends JPanel {
         JButton salvaBtn = new JButton("Salva Esito");
         salvaBtn.setFont(new Font("SansSerif", Font.BOLD, 12));
 
-        // Selezione riga → carica esito corrente
+
         table.getSelectionModel().addListSelectionListener(e -> {
             int row = table.getSelectedRow();
             if (row < 0 || row >= medicoCorrente.getPrestazioniErogate().size()) return;
