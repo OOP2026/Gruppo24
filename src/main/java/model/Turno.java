@@ -16,7 +16,7 @@ public class Turno {
 
         Validators.validaOggetto(giornoDellaSettimana, "Giorno della Settimana");
         Validators.validaIntervalloTempo(oraInizio, oraFine);
-        this.idTurno=idTurno; 
+        this.idTurno = idTurno;
         this.giornoDellaSettimana = giornoDellaSettimana;
         this.oraInizio = oraInizio;
         this.oraFine = oraFine;
@@ -26,5 +26,5 @@ public class Turno {
     public DayOfWeek getGiornoDellaSettimana() { return giornoDellaSettimana; }
     public LocalTime getOraInizio() { return oraInizio; }
     public LocalTime getOraFine() { return oraFine; }
-    public LocalTime getidTurno() { return idTurno; }
+    public long getIdTurno() { return idTurno; }
 }
