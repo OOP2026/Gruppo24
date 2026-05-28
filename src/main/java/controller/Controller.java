@@ -6,10 +6,7 @@ import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Classe Controller: unico intermediario tra il package gui e il package model.
- * Gestisce lo stato in memoria (no DB in questa fase).
- */
+
 public class Controller {
 
 
@@ -27,7 +24,6 @@ public class Controller {
 
 
 
-    /** Tenta il login. Restituisce l'utente se le credenziali sono valide, null altrimenti. */
     public Utente login(String login, String password) {
         for (Utente u : utenti) {
             if (u.getLogin().equals(login) && u.getPassword().equals(password)) {
@@ -70,29 +66,23 @@ public class Controller {
         return l;
     }
 
-    /** Restituisce tutti i letti di un reparto (tutte le stanze). */
+
     public List<Letto> getTuttiLetti(Reparto reparto) {
         return reparto.getStanze().stream()
                 .flatMap(s -> s.getLetti().stream())
                 .collect(Collectors.toList());
     }
 
-    /** Restituisce i letti LIBERI in questo momento in un reparto. */
     public List<Letto> getLettidiDisponibili(Reparto reparto) {
         return getTuttiLetti(reparto).stream()
                 .filter(l -> !isLettoOccupatoOra(l))
                 .collect(Collectors.toList());
     }
 
-    /** true se il letto risulta occupato adesso (ricovero in corso). */
     public boolean isLettoOccupatoOra(Letto letto) {
         LocalDateTime ora = LocalDateTime.now();
         return isLettoOccupato(letto, ora, ora.plusSeconds(1));
     }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // PAZIENTI
-    // ════════════════════════════════════════════════════════════════════════
 
     public List<Paziente> getPazienti() { return Collections.unmodifiableList(pazienti); }
 
@@ -118,17 +108,9 @@ public class Controller {
                 .findFirst().orElse(null);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RICOVERI
-    // ════════════════════════════════════════════════════════════════════════
 
     public List<Ricovero> getRicoveri() { return Collections.unmodifiableList(ricoveri); }
 
-    /**
-     * Crea e registra un nuovo ricovero.
-     * Lancia IllegalStateException se il letto è già occupato nell'intervallo.
-     * dataDimissione può essere null (ricovero a tempo indeterminato).
-     */
     public Ricovero aggiungiRicovero(Paziente paziente, Letto letto,
                                      LocalDateTime dataInizio, LocalDateTime dataDimissione) {
         LocalDateTime fine = (dataDimissione != null) ? dataDimissione : LocalDateTime.MAX;
@@ -146,30 +128,23 @@ public class Controller {
         ricovero.registraDimissione(dataDimissione);
     }
 
-    /** Ricoveri con dimissione prevista oggi. */
     public List<Ricovero> getPazientiInScadenzaOggi() {
         return getPazientiInScadenza(LocalDate.now());
     }
 
-    /** Ricoveri con dimissione prevista nella data indicata. */
     public List<Ricovero> getPazientiInScadenza(LocalDate data) {
         return ricoveri.stream()
                 .filter(r -> r.getDataDimissione() != null
                           && r.getDataDimissione().toLocalDate().equals(data))
                 .collect(Collectors.toList());
     }
-
-    /** Ricoveri attualmente in corso (nessuna dimissione registrata o dimissione futura). */
-    public List<Ricovero> getRicoveriInCorso() {
+     public List<Ricovero> getRicoveriInCorso() {
         LocalDateTime ora = LocalDateTime.now();
         return ricoveri.stream()
                 .filter(r -> r.isInCorso() || (r.getDataDimissione() != null && r.getDataDimissione().isAfter(ora)))
                 .collect(Collectors.toList());
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // MEDICI
-    // ════════════════════════════════════════════════════════════════════════
 
     public List<Medico> getMedici() {
         return utenti.stream()
@@ -196,24 +171,13 @@ public class Controller {
         return m;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // TURNI
-    // ════════════════════════════════════════════════════════════════════════
 
     public void aggiungiTurno(Medico medico, DayOfWeek giorno,
                                LocalTime oraInizio, LocalTime oraFine) {
         medico.aggiungiTurno(new Turno(giorno, oraInizio, oraFine));
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // PRESTAZIONI
-    // ════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Registra una prestazione per il medico su un ricovero.
-     * Controlla: (1) la prestazione deve ricadere in un turno del medico,
-     *             (2) non deve sovrapporsi con altre sue prestazioni.
-     */
     public Prestazione registraPrestazione(Medico medico, Ricovero ricovero,
                                             LocalDateTime inizio, LocalDateTime fine,
                                             TipoPrestazione tipo) {
@@ -237,10 +201,6 @@ public class Controller {
         prestazione.compilaEsito(esito);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // AGENDA
-    // ════════════════════════════════════════════════════════════════════════
-
     public List<Prestazione> getAgendaGiornaliera(Medico medico, LocalDate data) {
         return medico.getPrestazioniErogate().stream()
                 .filter(p -> p.getInizio().toLocalDate().equals(data))
@@ -248,7 +208,6 @@ public class Controller {
                 .collect(Collectors.toList());
     }
 
-    /** Restituisce una mappa giorno → prestazioni per i 7 giorni a partire da inizioSettimana. */
     public Map<LocalDate, List<Prestazione>> getAgendaSettimanale(Medico medico, LocalDate inizioSettimana) {
         Map<LocalDate, List<Prestazione>> agenda = new LinkedHashMap<>();
         for (int i = 0; i < 7; i++) {
@@ -258,15 +217,10 @@ public class Controller {
         return agenda;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // MALATTIA
-    // ════════════════════════════════════════════════════════════════════════
 
     public void registraMalattia(Medico medico, LocalDate dataInizio, LocalDate dataFine) {
         medico.aggiungiMalattia(new Malattia(dataInizio, dataFine));
     }
-
-    /** Turni del medico che cadono nel periodo di malattia. */
     public List<Turno> getTurniScoperti(Medico medico, LocalDate dataInizio, LocalDate dataFine) {
         List<Turno> scoperti = new ArrayList<>();
         for (LocalDate d = dataInizio; !d.isAfter(dataFine); d = d.plusDays(1)) {
@@ -277,8 +231,6 @@ public class Controller {
         }
         return scoperti;
     }
-
-    /** Prestazioni del medico programmate nel periodo di malattia. */
     public List<Prestazione> getPrestazioniScoperte(Medico medico, LocalDate dataInizio, LocalDate dataFine) {
         return medico.getPrestazioniErogate().stream()
                 .filter(p -> {
@@ -288,10 +240,6 @@ public class Controller {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Medici sostitutivi: stesso reparto, nessun turno/prestazione sovrapposto
-     * con i turni scoperti del medico assente nel periodo.
-     */
     public List<Medico> getMediciSostitutivi(Medico medicoAssente,
                                               LocalDate dataInizio, LocalDate dataFine) {
         List<Turno> turniScoperti = getTurniScoperti(medicoAssente, dataInizio, dataFine);
@@ -301,9 +249,6 @@ public class Controller {
                 .collect(Collectors.toList());
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // METODI PRIVATI DI SUPPORTO
-    // ════════════════════════════════════════════════════════════════════════
 
     private boolean isLettoOccupato(Letto letto, LocalDateTime richInizio, LocalDateTime richFine) {
         for (Ricovero r : ricoveri) {
@@ -329,14 +274,13 @@ public class Controller {
     private boolean haSovrapposizioni(Medico medico, List<Turno> turniScoperti,
                                        LocalDate dataInizio, LocalDate dataFine) {
         for (Turno ts : turniScoperti) {
-            // Turno vs Turno
+
             for (Turno tm : medico.getTurniProgrammati()) {
                 if (tm.getGiornoDellaSettimana() == ts.getGiornoDellaSettimana()
                         && ts.getOraInizio().isBefore(tm.getOraFine())
                         && tm.getOraInizio().isBefore(ts.getOraFine()))
                     return true;
             }
-            // Turno vs Prestazioni nel periodo
             for (LocalDate d = dataInizio; !d.isAfter(dataFine); d = d.plusDays(1)) {
                 if (d.getDayOfWeek() != ts.getGiornoDellaSettimana()) continue;
                 final LocalDate day = d;
@@ -352,16 +296,13 @@ public class Controller {
         return false;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // DATI DEMO (sostituisce il DB in questa fase)
-    // ════════════════════════════════════════════════════════════════════════
+
 
     private void inizializzaDatiDemo() {
         // Reparti
         Reparto cardiologia = aggiungiReparto("Cardiologia");
         Reparto chirurgia   = aggiungiReparto("Chirurgia");
 
-        // Struttura letti
         Stanza c101 = aggiungiStanza(cardiologia, 101);
         aggiungiLetto(c101, "CARD-101-A");
         aggiungiLetto(c101, "CARD-101-B");
@@ -371,8 +312,6 @@ public class Controller {
         Stanza ch201 = aggiungiStanza(chirurgia, 201);
         aggiungiLetto(ch201, "CHIR-201-A");
         aggiungiLetto(ch201, "CHIR-201-B");
-
-        // Utenti
         utenti.add(new Amministratore("admin", "admin123"));
 
         Medico m1 = aggiungiMedico("dr.rossi",   "pass123", "Mario", "Rossi",   "MED001", cardiologia);
@@ -380,24 +319,7 @@ public class Controller {
         aggiungiTurno(m1, DayOfWeek.WEDNESDAY, LocalTime.of(8,0),  LocalTime.of(14,0));
         aggiungiTurno(m1, DayOfWeek.FRIDAY,    LocalTime.of(14,0), LocalTime.of(20,0));
 
-        Medico m2 = aggiungiMedico("dr.verdi",   "pass456", "Luigi", "Verdi",   "MED002", cardiologia);
-        aggiungiTurno(m2, DayOfWeek.TUESDAY,   LocalTime.of(8,0),  LocalTime.of(14,0));
-        aggiungiTurno(m2, DayOfWeek.THURSDAY,  LocalTime.of(8,0),  LocalTime.of(14,0));
 
-        Medico m3 = aggiungiMedico("dr.bianchi", "pass789", "Anna",  "Bianchi", "MED003", chirurgia);
-        aggiungiTurno(m3, DayOfWeek.MONDAY,    LocalTime.of(7,0),  LocalTime.of(19,0));
-        aggiungiTurno(m3, DayOfWeek.THURSDAY,  LocalTime.of(7,0),  LocalTime.of(19,0));
-
-        // Pazienti
-        Paziente p1 = aggiungiPaziente("RSSMRA80A01F839X", "Marco",  "Russo", LocalDate.of(1980, 1, 1));
-        Paziente p2 = aggiungiPaziente("VRDGLI75B15H501Y", "Giulia", "Verdi", LocalDate.of(1975, 2, 15));
-
-        // Ricovero demo (letto CARD-101-A, scade domani)
-        List<Letto> lettiCard = getTuttiLetti(cardiologia);
-        if (!lettiCard.isEmpty()) {
-            aggiungiRicovero(p1, lettiCard.get(0),
-                LocalDateTime.now().minusDays(3),
-                LocalDateTime.now().plusDays(1));
         }
     }
-}
+

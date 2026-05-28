@@ -12,16 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
-/**
- * Pannello principale per il ruolo Amministratore.
- * Contiene un JTabbedPane con 6 tab:
- *   1. Pazienti        – anagrafica pazienti
- *   2. Ricoveri        – gestione ricoveri e dimissioni
- *   3. Letti           – disponibilità letti per reparto
- *   4. Dimissioni      – pazienti in scadenza
- *   5. Medici          – elenco medici per reparto
- *   6. Malattia        – registrazione assenza e medici sostitutivi
- */
+
 public class AdminPanel extends JPanel {
 
     private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern("dd/MM/yyyy");

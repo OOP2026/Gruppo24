@@ -34,7 +34,7 @@ public class MedicoPanel extends JPanel {
         add(tabs, BorderLayout.CENTER);
     }
 
-   //Agenda medico
+
     private JPanel buildAgendaGiornalieraPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -86,7 +86,7 @@ public class MedicoPanel extends JPanel {
         top.add(oggiBtn);
         top.add(cercaBtn);
 
-        // Turni del giorno come reminder
+
         JLabel turniLabel = buildTurniLabel(LocalDate.now().getDayOfWeek());
         dataField.addActionListener(e -> {
             try {
@@ -208,7 +208,7 @@ public class MedicoPanel extends JPanel {
         addRow(formPanel, gbc, 2, "Fine:",                fineField);
         addRow(formPanel, gbc, 3, "Tipo:",                tipoCombo);
 
-        // Mostra turni del medico
+
         JTextArea turniInfo = new JTextArea(4, 30);
         turniInfo.setEditable(false);
         turniInfo.setFont(new Font("Monospaced", Font.PLAIN, 11));
@@ -287,7 +287,7 @@ public class MedicoPanel extends JPanel {
         };
         refreshEsiti.run();
 
-      //esiti
+
         JPanel editPanel = new JPanel(new BorderLayout(5, 5));
         editPanel.setBorder(BorderFactory.createTitledBorder("Compila / Modifica Esito"));
 
@@ -330,9 +330,7 @@ public class MedicoPanel extends JPanel {
         return panel;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // UTILITY
-    // ════════════════════════════════════════════════════════════════════════
+
 
     private JComboBox<Ricovero> buildRicoveroCombo() {
         JComboBox<Ricovero> cb = new JComboBox<>();

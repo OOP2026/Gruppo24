@@ -3,10 +3,6 @@ import gui.LoginFrame;
 
 import javax.swing.*;
 
-/**
- * Entry point dell'applicazione Gestione Ospedale.
- * Avvia la LoginFrame sul thread EDT di Swing.
- */
 public class Main {
     public static void main(String[] args) {
         // Usa il look-and-feel nativo del sistema operativo
