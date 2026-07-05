@@ -1,26 +1,23 @@
 package gui;
 
 import controller.Controller;
-import model.Utente;
+import dao.DAOException;
 
 import javax.swing.*;
 import java.awt.*;
-
-
 
 public class LoginFrame extends JFrame {
 
     private final Controller controller;
 
-
-    private JPanel  rootPanel;
-    private JLabel  titleLabel;
-    private JLabel  loginLabel;
-    private JLabel  passwordLabel;
-    private JTextField    loginField;
+    private JPanel         rootPanel;
+    private JLabel         titleLabel;
+    private JLabel         loginLabel;
+    private JLabel         passwordLabel;
+    private JTextField     loginField;
     private JPasswordField passwordField;
-    private JButton loginButton;
-    private JLabel  statusLabel;
+    private JButton        loginButton;
+    private JLabel         statusLabel;
 
     public LoginFrame(Controller controller) {
         this.controller = controller;
@@ -32,11 +29,10 @@ public class LoginFrame extends JFrame {
         rootPanel = new JPanel(new BorderLayout(0, 10));
         rootPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 20, 40));
 
-        titleLabel = new JLabel("Acesso Utente Ospedale", SwingConstants.CENTER);
+        titleLabel = new JLabel("Accesso Utente Ospedale", SwingConstants.CENTER);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
         rootPanel.add(titleLabel, BorderLayout.NORTH);
-
 
         JPanel formPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -61,7 +57,6 @@ public class LoginFrame extends JFrame {
 
         rootPanel.add(formPanel, BorderLayout.CENTER);
 
-
         JPanel bottomPanel = new JPanel(new BorderLayout(0, 4));
 
         loginButton = new JButton("Accedi");
@@ -75,14 +70,6 @@ public class LoginFrame extends JFrame {
         bottomPanel.add(statusLabel, BorderLayout.SOUTH);
 
         rootPanel.add(bottomPanel, BorderLayout.SOUTH);
-
-
-        JLabel hint = new JLabel(
-            "<html><small><i>Demo: admin/admin123 · dr.rossi/pass123 · dr.bianchi/pass789</i></small></html>",
-            SwingConstants.CENTER);
-        hint.setForeground(Color.GRAY);
-        bottomPanel.add(hint, BorderLayout.CENTER);
-
 
         loginButton.addActionListener(e -> handleLogin());
         passwordField.addActionListener(e -> handleLogin());
@@ -108,14 +95,21 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        Utente utente = controller.login(login, password);
-        if (utente == null) {
-            statusLabel.setText("Credenziali non valide. Riprovare.");
-            passwordField.setText("");
-            loginField.requestFocus();
-        } else {
-            dispose();
-            new MainFrame(controller).setVisible(true);
+        try {
+            boolean ok = controller.login(login, password);
+            if (!ok) {
+                statusLabel.setText("Credenziali non valide. Riprovare.");
+                passwordField.setText("");
+                loginField.requestFocus();
+            } else {
+                dispose();
+                new MainFrame(controller).setVisible(true);
+            }
+        } catch (DAOException e) {
+            statusLabel.setText("Errore di connessione al database.");
+            JOptionPane.showMessageDialog(this,
+                "Impossibile connettersi al database.\n" + e.getMessage(),
+                "Errore DB", JOptionPane.ERROR_MESSAGE);
         }
     }
 }

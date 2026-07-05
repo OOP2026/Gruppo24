@@ -1,84 +1,51 @@
 package model;
 
-import java.util.ArrayList;
-import java.util.List;
-import utils.Validators;
+public class Medico {
 
-public class Medico extends Utente {
-
+    private int idMedico;
+    private String login;
+    private String password;
+    private String matricola;
     private String nome;
     private String cognome;
-    private final String matricola;
-    private Reparto reparto;
+    private int idReparto;
 
-    private final List<Turno> turniProgrammati;
-    private final List<Prestazione> prestazioniErogate;
-    private final List<Malattia> periodiMalattia;
+    public Medico() {}
 
-    public Medico(String login, String password, String nome, String cognome, String matricola, Reparto reparto) {
-
-        super(login, password);
-
-        Validators.validaStringa(nome, "Nome Medico");
-        Validators.validaStringa(cognome, "Cognome Medico");
-        Validators.validaStringa(matricola, "Matricola");
-        Validators.validaOggetto(reparto, "Reparto di afferenza");
-
-        this.nome = nome;
-        this.cognome = cognome;
+    public Medico(int idMedico, String login, String password, String matricola,
+                  String nome, String cognome, int idReparto) {
+        this.idMedico = idMedico;
+        this.login = login;
+        this.password = password;
         this.matricola = matricola;
-        this.reparto = reparto;
-
-        this.turniProgrammati = new ArrayList<>();
-        this.prestazioniErogate = new ArrayList<>();
-        this.periodiMalattia = new ArrayList<>();
-    }
-
-    public void aggiungiTurno(Turno turno) {
-        Validators.validaOggetto(turno, "Turno");
-        this.turniProgrammati.add(turno);
-    }
-
-    public void aggiungiPrestazione(Prestazione prestazione) {
-        Validators.validaOggetto(prestazione, "Prestazione");
-        this.prestazioniErogate.add(prestazione);
-    }
-
-    public void aggiungiMalattia(Malattia malattia) {
-        Validators.validaOggetto(malattia, "Malattia");
-        this.periodiMalattia.add(malattia);
-    }
-
-    public String getNome() { return nome; }
-
-    public void setNome(String nome) {
-        Validators.validaStringa(nome, "Nome");
         this.nome = nome;
-    }
-
-    public String getCognome() { return cognome; }
-
-    public void setCognome(String cognome) {
-
-        Validators.validaStringa(cognome, "Cognome");
-
         this.cognome = cognome;
-
+        this.idReparto = idReparto;
     }
+
+    public int getIdMedico() { return idMedico; }
+    public void setIdMedico(int idMedico) { this.idMedico = idMedico; }
+
+    public String getLogin() { return login; }
+    public void setLogin(String login) { this.login = login; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
     public String getMatricola() { return matricola; }
+    public void setMatricola(String matricola) { this.matricola = matricola; }
 
-    public Reparto getReparto() { return reparto; }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    public void setReparto(Reparto reparto) {
+    public String getCognome() { return cognome; }
+    public void setCognome(String cognome) { this.cognome = cognome; }
 
-        Validators.validaOggetto(reparto, "Reparto");
+    public int getIdReparto() { return idReparto; }
+    public void setIdReparto(int idReparto) { this.idReparto = idReparto; }
 
-        this.reparto = reparto;
-
+    @Override
+    public String toString() {
+        return "Dr. " + nome + " " + cognome + " (" + matricola + ")";
     }
-
-    public List<Turno> getTurniProgrammati() { return turniProgrammati; }
-    public List<Prestazione> getPrestazioniErogate() { return prestazioniErogate; }
-    public List<Malattia> getPeriodiMalattia() { return periodiMalattia; }
 }

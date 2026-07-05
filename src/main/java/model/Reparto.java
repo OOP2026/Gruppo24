@@ -1,43 +1,35 @@
 package model;
 
-import utils.Validators;
-
-import java.util.ArrayList;
-import java.util.List;
-
 public class Reparto {
 
-    private String nome;
+    private int idReparto;
+    private String nomeReparto;
+    private int piano;
+    private String ala;
 
-    private final List<Stanza> stanze;
+    public Reparto() {}
 
-    public Reparto(String nome) {
-
-        Validators.validaStringa(nome, "Nome Reparto");
-
-        this.nome = nome;
-        this.stanze = new ArrayList<>();
-
+    public Reparto(int idReparto, String nomeReparto, int piano, String ala) {
+        this.idReparto = idReparto;
+        this.nomeReparto = nomeReparto;
+        this.piano = piano;
+        this.ala = ala;
     }
 
-    public void aggiungiStanza(Stanza stanza) {
+    public int getIdReparto() { return idReparto; }
+    public void setIdReparto(int idReparto) { this.idReparto = idReparto; }
 
-        Validators.validaOggetto(stanza, "Stanza");
+    public String getNomeReparto() { return nomeReparto; }
+    public void setNomeReparto(String nomeReparto) { this.nomeReparto = nomeReparto; }
 
-        this.stanze.add(stanza);
+    public int getPiano() { return piano; }
+    public void setPiano(int piano) { this.piano = piano; }
 
+    public String getAla() { return ala; }
+    public void setAla(String ala) { this.ala = ala; }
+
+    @Override
+    public String toString() {
+        return nomeReparto;
     }
-
-    public String getNome() { return nome; }
-
-    public void setNome(String nome) {
-
-        Validators.validaStringa(nome, "Nome Reparto");
-
-        this.nome = nome;
-
-    }
-
-    public List<Stanza> getStanze() { return stanze; }
-
 }

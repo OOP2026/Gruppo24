@@ -30,3 +30,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Configurazione DB (dati sensibili) ###
+src/main/resources/db.properties

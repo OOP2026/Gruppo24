@@ -1,31 +1,25 @@
 package model;
 
-import utils.Validators;
-
-import java.util.ArrayList;
-import java.util.List;
-
 public class Stanza {
-    private int numero;
-    private List<Letto> letti;
 
-    public Stanza(int numero) {
-        Validators.validaNumeroPositivo(numero, "Numero Stanza");
-        this.numero = numero;
-        this.letti = new ArrayList<>();
+    private int idReparto;
+    private String numeroStanza;
+    private int capienzaMax;
+
+    public Stanza() {}
+
+    public Stanza(int idReparto, String numeroStanza, int capienzaMax) {
+        this.idReparto = idReparto;
+        this.numeroStanza = numeroStanza;
+        this.capienzaMax = capienzaMax;
     }
 
-    public int getNumero() { return numero; }
+    public int getIdReparto() { return idReparto; }
+    public void setIdReparto(int idReparto) { this.idReparto = idReparto; }
 
-    public void setNumero(int numero) {
-        this.numero = numero;
-    }
+    public String getNumeroStanza() { return numeroStanza; }
+    public void setNumeroStanza(String numeroStanza) { this.numeroStanza = numeroStanza; }
 
-    public List<Letto> getLetti() {
-        return letti;
-    }
-
-    public void setLetti(List<Letto> letti) {
-        this.letti = letti;
-    }
+    public int getCapienzaMax() { return capienzaMax; }
+    public void setCapienzaMax(int capienzaMax) { this.capienzaMax = capienzaMax; }
 }

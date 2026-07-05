@@ -1,325 +1,261 @@
 package controller;
 
+import dao.*;
+import implementazioneDao.*;
 import model.*;
 
-import java.time.*;
-import java.util.*;
-import java.util.stream.Collectors;
-
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 public class Controller {
 
+    private final AmministratoreDAO amministratoreDao;
+    private final MedicoDAO medicoDao;
+    private final PazienteDAO pazienteDao;
+    private final RepartoDAO repartoDao;
+    private final StanzaDAO stanzaDao;
+    private final LettoDAO lettoDao;
+    private final RicoveroDAO ricoveroDao;
+    private final PrestazioneDAO prestazioneDao;
+    private final TurnoDAO turnoDao;
+    private final PeriodoMalattiaDAO periodoMalattiaDao;
+    private final SpecializzazioneDAO specializzazioneDao;
 
-    private final List<Utente>   utenti    = new ArrayList<>();
-    private final List<Reparto>  reparti   = new ArrayList<>();
-    private final List<Paziente> pazienti  = new ArrayList<>();
-    private final List<Ricovero> ricoveri  = new ArrayList<>();
-
-    private Utente utenteCorrente;
+    private Amministratore amministratoreCorrente;
+    private Medico medicoCorrente;
+    private Reparto repartoMedicoCorrente;
 
     public Controller() {
-        inizializzaDatiDemo();
+        this.amministratoreDao = new AmministratorePostgresDao();
+        this.medicoDao = new MedicoPostgresDao();
+        this.pazienteDao = new PazientePostgresDao();
+        this.repartoDao = new RepartoPostgresDao();
+        this.stanzaDao = new StanzaPostgresDao();
+        this.lettoDao = new LettoPostgresDao();
+        this.ricoveroDao = new RicoveroPostgresDao();
+        this.prestazioneDao = new PrestazionePostgresDao();
+        this.turnoDao = new TurnoPostgresDao();
+        this.periodoMalattiaDao = new PeriodoMalattiaPostgresDao();
+        this.specializzazioneDao = new SpecializzazionePostgresDao();
     }
 
+    // Autenticazione
 
-
-
-    public Utente login(String login, String password) {
-        for (Utente u : utenti) {
-            if (u.getLogin().equals(login) && u.getPassword().equals(password)) {
-                this.utenteCorrente = u;
-                return u;
-            }
+    public boolean login(String login, String password) {
+        if (login == null || login.isBlank() || password == null || password.isBlank())
+            return false;
+        Optional<Amministratore> admin = amministratoreDao.autentica(login, password);
+        if (admin.isPresent()) {
+            amministratoreCorrente = admin.get();
+            medicoCorrente = null;
+            repartoMedicoCorrente = null;
+            return true;
         }
-        return null;
+        Optional<Medico> medico = medicoDao.autentica(login, password);
+        if (medico.isPresent()) {
+            medicoCorrente = medico.get();
+            amministratoreCorrente = null;
+            repartoMedicoCorrente = repartoDao.findById(medicoCorrente.getIdReparto()).orElse(null);
+            return true;
+        }
+        return false;
     }
 
-    public void logout() { this.utenteCorrente = null; }
-
-    public Utente  getUtenteCorrente()  { return utenteCorrente; }
-    public boolean isAmministratore()   { return utenteCorrente instanceof Amministratore; }
-    public boolean isMedico()           { return utenteCorrente instanceof Medico; }
-
-
-    public Medico getMedicoCorrente() {
-        return (utenteCorrente instanceof Medico) ? (Medico) utenteCorrente : null;
+    public void logout() {
+        amministratoreCorrente = null;
+        medicoCorrente = null;
+        repartoMedicoCorrente = null;
     }
 
+    public boolean isAmministratore() { return amministratoreCorrente != null; }
+    public boolean isMedico()         { return medicoCorrente != null; }
 
-    public List<Reparto> getReparti() { return Collections.unmodifiableList(reparti); }
+    public Amministratore getAmministratoreCorrente() { return amministratoreCorrente; }
+    public Medico         getMedicoCorrente()          { return medicoCorrente; }
 
-    public Reparto aggiungiReparto(String nome) {
-        Reparto r = new Reparto(nome);
-        reparti.add(r);
-        return r;
+    public String getNomeRepartoMedicoCorrente() {
+        return repartoMedicoCorrente != null ? repartoMedicoCorrente.getNomeReparto() : "";
     }
 
-    public Stanza aggiungiStanza(Reparto reparto, int numero) {
-        Stanza s = new Stanza(numero);
-        reparto.aggiungiStanza(s);
-        return s;
+    // Reparti
+
+    public List<Reparto> getReparti() {
+        return repartoDao.findAll();
     }
 
-    public Letto aggiungiLetto(Stanza stanza, String codice) {
-        Letto l = new Letto(codice);
-        stanza.getLetti().add(l);   // getLetti() restituisce la lista interna (non defensive copy)
-        return l;
+    public Optional<Reparto> getReparto(int idReparto) {
+        return repartoDao.findById(idReparto);
     }
 
+    // Pazienti
 
-    public List<Letto> getTuttiLetti(Reparto reparto) {
-        return reparto.getStanze().stream()
-                .flatMap(s -> s.getLetti().stream())
-                .collect(Collectors.toList());
+    public List<Paziente> getPazienti() {
+        return pazienteDao.findAll();
     }
-
-    public List<Letto> getLettidiDisponibili(Reparto reparto) {
-        return getTuttiLetti(reparto).stream()
-                .filter(l -> !isLettoOccupatoOra(l))
-                .collect(Collectors.toList());
-    }
-
-    public boolean isLettoOccupatoOra(Letto letto) {
-        LocalDateTime ora = LocalDateTime.now();
-        return isLettoOccupato(letto, ora, ora.plusSeconds(1));
-    }
-
-    public List<Paziente> getPazienti() { return Collections.unmodifiableList(pazienti); }
 
     public Paziente aggiungiPaziente(String cf, String nome, String cognome, LocalDate dataNascita) {
-        for (Paziente p : pazienti) {
-            if (p.getCodiceFiscale().equalsIgnoreCase(cf))
-                throw new IllegalArgumentException("Paziente con CF " + cf + " già registrato.");
-        }
-        Paziente p = new Paziente(cf, nome, cognome, dataNascita);
-        pazienti.add(p);
+        if (cf == null || cf.isBlank())
+            throw new IllegalArgumentException("Codice Fiscale obbligatorio.");
+        if (cf.trim().length() != 16)
+            throw new IllegalArgumentException("Il Codice Fiscale deve avere esattamente 16 caratteri.");
+        if (nome == null || nome.isBlank())
+            throw new IllegalArgumentException("Nome obbligatorio.");
+        if (cognome == null || cognome.isBlank())
+            throw new IllegalArgumentException("Cognome obbligatorio.");
+        if (dataNascita == null)
+            throw new IllegalArgumentException("Data di nascita obbligatoria.");
+        if (dataNascita.isAfter(LocalDate.now()))
+            throw new IllegalArgumentException("La data di nascita non può essere nel futuro.");
+        if (pazienteDao.findByCodiceFiscale(cf).isPresent())
+            throw new IllegalArgumentException("Paziente con CF " + cf + " già registrato.");
+        Paziente p = new Paziente(0, cf.toUpperCase().trim(), nome.trim(), cognome.trim(), dataNascita);
+        pazienteDao.insert(p);
         return p;
     }
 
-    public void modificaPaziente(Paziente paziente, String nome, String cognome, LocalDate dataNascita) {
-        paziente.setNome(nome);
-        paziente.setCognome(cognome);
-        paziente.setDataNascita(dataNascita);
+    public void modificaPaziente(int idPaziente, String nome, String cognome, LocalDate dataNascita) {
+        if (nome == null || nome.isBlank())
+            throw new IllegalArgumentException("Nome obbligatorio.");
+        if (cognome == null || cognome.isBlank())
+            throw new IllegalArgumentException("Cognome obbligatorio.");
+        if (dataNascita == null || dataNascita.isAfter(LocalDate.now()))
+            throw new IllegalArgumentException("Data di nascita non valida.");
+        Paziente p = pazienteDao.findById(idPaziente)
+                .orElseThrow(() -> new IllegalArgumentException("Paziente non trovato."));
+        p.setNome(nome.trim());
+        p.setCognome(cognome.trim());
+        p.setDataNascita(dataNascita);
+        pazienteDao.update(p);
     }
 
-    public Paziente trovaPazientePerCF(String cf) {
-        return pazienti.stream()
-                .filter(p -> p.getCodiceFiscale().equalsIgnoreCase(cf))
-                .findFirst().orElse(null);
+    public Optional<Paziente> trovaPazientePerCF(String cf) {
+        return pazienteDao.findByCodiceFiscale(cf);
     }
 
+    // Letti
 
-    public List<Ricovero> getRicoveri() { return Collections.unmodifiableList(ricoveri); }
-
-    public Ricovero aggiungiRicovero(Paziente paziente, Letto letto,
-                                     LocalDateTime dataInizio, LocalDateTime dataDimissione) {
-        LocalDateTime fine = (dataDimissione != null) ? dataDimissione : LocalDateTime.MAX;
-        if (isLettoOccupato(letto, dataInizio, fine))
-            throw new IllegalStateException(
-                "Il letto " + letto.getCodiceUnivoco() + " è già occupato nell'intervallo indicato.");
-
-        Ricovero r = new Ricovero(dataInizio, paziente, letto);
-        if (dataDimissione != null) r.registraDimissione(dataDimissione);
-        ricoveri.add(r);
-        return r;
+    public List<Letto> getLettiPerReparto(int idReparto) {
+        return lettoDao.findByReparto(idReparto);
     }
 
-    public void registraDimissione(Ricovero ricovero, LocalDateTime dataDimissione) {
-        ricovero.registraDimissione(dataDimissione);
+    public List<Letto> getLettiDisponibiliPerReparto(int idReparto) {
+        return lettoDao.trovaLettiDisponibiliInReparto(idReparto);
     }
 
-    public List<Ricovero> getPazientiInScadenzaOggi() {
-        return getPazientiInScadenza(LocalDate.now());
+    public List<Letto> getLettiOccupati() {
+        return lettoDao.trovaLettiOccupati();
     }
 
-    public List<Ricovero> getPazientiInScadenza(LocalDate data) {
-        return ricoveri.stream()
-                .filter(r -> r.getDataDimissione() != null
-                          && r.getDataDimissione().toLocalDate().equals(data))
-                .collect(Collectors.toList());
-    }
-     public List<Ricovero> getRicoveriInCorso() {
-        LocalDateTime ora = LocalDateTime.now();
-        return ricoveri.stream()
-                .filter(r -> r.isInCorso() || (r.getDataDimissione() != null && r.getDataDimissione().isAfter(ora)))
-                .collect(Collectors.toList());
+    // Ricoveri
+
+    public List<Ricovero> getRicoveri() {
+        return ricoveroDao.findAll();
     }
 
+    public List<Ricovero> getRicoveriInCorso() {
+        return ricoveroDao.findInCorso();
+    }
+
+    public void registraRicovero(String numeroPratica, int idPaziente,
+                                  String codiceUnivocoLetto, LocalDateTime dataInizio,
+                                  LocalDateTime dataDimissione, String motivo) {
+        if (numeroPratica == null || numeroPratica.isBlank())
+            throw new IllegalArgumentException("Numero pratica obbligatorio.");
+        if (motivo == null || motivo.isBlank())
+            throw new IllegalArgumentException("Motivo del ricovero obbligatorio.");
+        if (dataInizio == null)
+            throw new IllegalArgumentException("Data di inizio obbligatoria.");
+        if (dataDimissione != null && !dataDimissione.isAfter(dataInizio))
+            throw new IllegalArgumentException("La data di dimissione deve essere successiva all'inizio.");
+        if (ricoveroDao.findById(numeroPratica).isPresent())
+            throw new IllegalArgumentException("Esiste già un ricovero con numero pratica " + numeroPratica + ".");
+        Ricovero r = new Ricovero(numeroPratica, dataInizio, dataDimissione, motivo, idPaziente, codiceUnivocoLetto);
+        ricoveroDao.insert(r);
+    }
+
+    public void registraDimissione(String numeroPratica, LocalDateTime dataDimissione) {
+        if (dataDimissione == null)
+            throw new IllegalArgumentException("Data di dimissione obbligatoria.");
+        Ricovero r = ricoveroDao.findById(numeroPratica)
+                .orElseThrow(() -> new IllegalArgumentException("Ricovero non trovato."));
+        if (!r.isInCorso())
+            throw new IllegalStateException("Il ricovero è già stato concluso.");
+        if (!dataDimissione.isAfter(r.getDataInizioRicovero()))
+            throw new IllegalArgumentException("La data di dimissione deve essere successiva all'inizio del ricovero.");
+        r.setDataDimissioneRicovero(dataDimissione);
+        ricoveroDao.update(r);
+    }
+
+    public List<PazienteInDimissione> getPazientiInDimissione(LocalDate data) {
+        if (data == null) throw new IllegalArgumentException("Data obbligatoria.");
+        return ricoveroDao.trovaRicoveriInDimissione(data);
+    }
+
+    // Medici
 
     public List<Medico> getMedici() {
-        return utenti.stream()
-                .filter(u -> u instanceof Medico)
-                .map(u -> (Medico) u)
-                .collect(Collectors.toList());
+        return medicoDao.findAll();
     }
 
-    public List<Medico> getMediciPerReparto(Reparto reparto) {
-        return getMedici().stream()
-                .filter(m -> m.getReparto().getNome().equals(reparto.getNome()))
-                .collect(Collectors.toList());
+    // Periodi di malattia
+
+    public void registraPeriodoMalattia(String codiceCertificato, int idMedico,
+                                         LocalDate dataInizio, LocalDate dataFine) {
+        if (codiceCertificato == null || codiceCertificato.isBlank())
+            throw new IllegalArgumentException("Codice certificato obbligatorio.");
+        if (dataInizio == null || dataFine == null)
+            throw new IllegalArgumentException("Date obbligatorie.");
+        if (dataFine.isBefore(dataInizio))
+            throw new IllegalArgumentException("La data di fine non può precedere quella di inizio.");
+        if (periodoMalattiaDao.findById(codiceCertificato).isPresent())
+            throw new IllegalArgumentException("Esiste già un certificato con codice " + codiceCertificato + ".");
+        PeriodoMalattia pm = new PeriodoMalattia(codiceCertificato, dataInizio, dataFine, idMedico);
+        periodoMalattiaDao.insert(pm);
     }
 
-    public Medico aggiungiMedico(String login, String password,
-                                  String nome, String cognome,
-                                  String matricola, Reparto reparto) {
-        for (Utente u : utenti) {
-            if (u.getLogin().equals(login))
-                throw new IllegalArgumentException("Login già in uso: " + login);
-        }
-        Medico m = new Medico(login, password, nome, cognome, matricola, reparto);
-        utenti.add(m);
-        return m;
+    public List<Sostituto> trovaSostituti(int idMedico, LocalDate inizio, LocalDate fine) {
+        return periodoMalattiaDao.trovaSostituti(idMedico, inizio, fine);
     }
 
+    // Agenda medico
 
-    public void aggiungiTurno(Medico medico, DayOfWeek giorno,
-                               LocalTime oraInizio, LocalTime oraFine) {
-        medico.aggiungiTurno(new Turno(giorno, oraInizio, oraFine));
+    public List<Turno> getAgendaMedico(int idMedico, LocalDate inizio, LocalDate fine) {
+        return turnoDao.trovaAgendaMedico(idMedico, inizio, fine);
     }
 
+    // Prestazioni
 
-    public Prestazione registraPrestazione(Medico medico, Ricovero ricovero,
-                                            LocalDateTime inizio, LocalDateTime fine,
-                                            TipoPrestazione tipo) {
-        if (!medicoHaTurnoIn(medico, inizio, fine))
-            throw new IllegalStateException(
-                "La prestazione non ricade in nessun turno lavorativo del medico.");
-
-        for (Prestazione p : medico.getPrestazioniErogate()) {
-            if (inizio.isBefore(p.getFine()) && p.getInizio().isBefore(fine))
-                throw new IllegalStateException(
-                    "Il medico ha già un'altra prestazione in questo intervallo.");
-        }
-
-        Prestazione prestazione = new Prestazione(inizio, fine, tipo, medico, ricovero);
-        medico.aggiungiPrestazione(prestazione);
-        ricovero.aggiungiPrestazione(prestazione);
-        return prestazione;
+    public List<Prestazione> getPrestazioniMedico(int idMedico) {
+        return prestazioneDao.findByMedico(idMedico);
     }
 
-    public void aggiornaEsito(Prestazione prestazione, String esito) {
-        prestazione.compilaEsito(esito);
+    public List<Prestazione> getPrestazioniPerGiorno(int idMedico, LocalDate data) {
+        return prestazioneDao.findByMedicoAndDate(idMedico, data);
     }
 
-    public List<Prestazione> getAgendaGiornaliera(Medico medico, LocalDate data) {
-        return medico.getPrestazioniErogate().stream()
-                .filter(p -> p.getInizio().toLocalDate().equals(data))
-                .sorted(Comparator.comparing(Prestazione::getInizio))
-                .collect(Collectors.toList());
+    public void registraPrestazione(String numeroPratica, LocalDateTime dataInizio,
+                                     LocalDateTime dataFine, TipoPrestazione tipo) {
+        if (medicoCorrente == null)
+            throw new IllegalStateException("Nessun medico autenticato.");
+        if (numeroPratica == null || numeroPratica.isBlank())
+            throw new IllegalArgumentException("Numero pratica obbligatorio.");
+        if (dataInizio == null || dataFine == null)
+            throw new IllegalArgumentException("Date obbligatorie.");
+        if (!dataFine.isAfter(dataInizio))
+            throw new IllegalArgumentException("La fine deve essere successiva all'inizio.");
+        if (!dataInizio.toLocalDate().equals(dataFine.toLocalDate()))
+            throw new IllegalArgumentException("La prestazione deve svolgersi in un'unica giornata.");
+        ricoveroDao.findById(numeroPratica)
+                .orElseThrow(() -> new IllegalArgumentException("Ricovero " + numeroPratica + " non trovato."));
+        Prestazione p = new Prestazione(numeroPratica, 0, dataInizio, dataFine, null, tipo, medicoCorrente.getIdMedico());
+        prestazioneDao.insert(p);
     }
 
-    public Map<LocalDate, List<Prestazione>> getAgendaSettimanale(Medico medico, LocalDate inizioSettimana) {
-        Map<LocalDate, List<Prestazione>> agenda = new LinkedHashMap<>();
-        for (int i = 0; i < 7; i++) {
-            LocalDate giorno = inizioSettimana.plusDays(i);
-            agenda.put(giorno, getAgendaGiornaliera(medico, giorno));
-        }
-        return agenda;
+    public void aggiornaEsito(String numeroPratica, int numeroPrestazione, String esito) {
+        if (esito == null || esito.isBlank())
+            throw new IllegalArgumentException("L'esito non può essere vuoto.");
+        prestazioneDao.aggiornaEsito(numeroPratica, numeroPrestazione, esito.trim());
     }
-
-
-    public void registraMalattia(Medico medico, LocalDate dataInizio, LocalDate dataFine) {
-        medico.aggiungiMalattia(new Malattia(dataInizio, dataFine));
-    }
-    public List<Turno> getTurniScoperti(Medico medico, LocalDate dataInizio, LocalDate dataFine) {
-        List<Turno> scoperti = new ArrayList<>();
-        for (LocalDate d = dataInizio; !d.isAfter(dataFine); d = d.plusDays(1)) {
-            DayOfWeek giorno = d.getDayOfWeek();
-            medico.getTurniProgrammati().stream()
-                    .filter(t -> t.getGiornoDellaSettimana() == giorno)
-                    .forEach(scoperti::add);
-        }
-        return scoperti;
-    }
-    public List<Prestazione> getPrestazioniScoperte(Medico medico, LocalDate dataInizio, LocalDate dataFine) {
-        return medico.getPrestazioniErogate().stream()
-                .filter(p -> {
-                    LocalDate data = p.getInizio().toLocalDate();
-                    return !data.isBefore(dataInizio) && !data.isAfter(dataFine);
-                })
-                .collect(Collectors.toList());
-    }
-
-    public List<Medico> getMediciSostitutivi(Medico medicoAssente,
-                                              LocalDate dataInizio, LocalDate dataFine) {
-        List<Turno> turniScoperti = getTurniScoperti(medicoAssente, dataInizio, dataFine);
-        return getMediciPerReparto(medicoAssente.getReparto()).stream()
-                .filter(m -> !m.getMatricola().equals(medicoAssente.getMatricola()))
-                .filter(m -> !haSovrapposizioni(m, turniScoperti, dataInizio, dataFine))
-                .collect(Collectors.toList());
-    }
-
-
-    private boolean isLettoOccupato(Letto letto, LocalDateTime richInizio, LocalDateTime richFine) {
-        for (Ricovero r : ricoveri) {
-            if (!r.getLetto().getCodiceUnivoco().equals(letto.getCodiceUnivoco())) continue;
-            LocalDateTime rInizio = r.getDataInizio();
-            LocalDateTime rFine   = r.getDataDimissione() != null ? r.getDataDimissione() : LocalDateTime.MAX;
-            // overlap: start1 < end2 AND start2 < end1
-            if (richInizio.isBefore(rFine) && rInizio.isBefore(richFine)) return true;
-        }
-        return false;
-    }
-
-    private boolean medicoHaTurnoIn(Medico medico, LocalDateTime inizio, LocalDateTime fine) {
-        DayOfWeek giorno   = inizio.getDayOfWeek();
-        LocalTime  oraStart = inizio.toLocalTime();
-        LocalTime  oraEnd   = fine.toLocalTime();
-        return medico.getTurniProgrammati().stream()
-                .anyMatch(t -> t.getGiornoDellaSettimana() == giorno
-                            && !oraStart.isBefore(t.getOraInizio())
-                            && !oraEnd.isAfter(t.getOraFine()));
-    }
-
-    private boolean haSovrapposizioni(Medico medico, List<Turno> turniScoperti,
-                                       LocalDate dataInizio, LocalDate dataFine) {
-        for (Turno ts : turniScoperti) {
-
-            for (Turno tm : medico.getTurniProgrammati()) {
-                if (tm.getGiornoDellaSettimana() == ts.getGiornoDellaSettimana()
-                        && ts.getOraInizio().isBefore(tm.getOraFine())
-                        && tm.getOraInizio().isBefore(ts.getOraFine()))
-                    return true;
-            }
-            for (LocalDate d = dataInizio; !d.isAfter(dataFine); d = d.plusDays(1)) {
-                if (d.getDayOfWeek() != ts.getGiornoDellaSettimana()) continue;
-                final LocalDate day = d;
-                for (Prestazione p : medico.getPrestazioniErogate()) {
-                    if (!p.getInizio().toLocalDate().equals(day)) continue;
-                    LocalTime ps = p.getInizio().toLocalTime();
-                    LocalTime pe = p.getFine().toLocalTime();
-                    if (ts.getOraInizio().isBefore(pe) && ps.isBefore(ts.getOraFine()))
-                        return true;
-                }
-            }
-        }
-        return false;
-    }
-
-
-
-    private void inizializzaDatiDemo() {
-        // Reparti
-        Reparto cardiologia = aggiungiReparto("Cardiologia");
-        Reparto chirurgia   = aggiungiReparto("Chirurgia");
-
-        Stanza c101 = aggiungiStanza(cardiologia, 101);
-        aggiungiLetto(c101, "CARD-101-A");
-        aggiungiLetto(c101, "CARD-101-B");
-        Stanza c102 = aggiungiStanza(cardiologia, 102);
-        aggiungiLetto(c102, "CARD-102-A");
-
-        Stanza ch201 = aggiungiStanza(chirurgia, 201);
-        aggiungiLetto(ch201, "CHIR-201-A");
-        aggiungiLetto(ch201, "CHIR-201-B");
-        utenti.add(new Amministratore("admin", "admin123"));
-
-        Medico m1 = aggiungiMedico("dr.rossi",   "pass123", "Mario", "Rossi",   "MED001", cardiologia);
-        aggiungiTurno(m1, DayOfWeek.MONDAY,    LocalTime.of(8,0),  LocalTime.of(14,0));
-        aggiungiTurno(m1, DayOfWeek.WEDNESDAY, LocalTime.of(8,0),  LocalTime.of(14,0));
-        aggiungiTurno(m1, DayOfWeek.FRIDAY,    LocalTime.of(14,0), LocalTime.of(20,0));
-
-
-        }
-    }
-
+}
