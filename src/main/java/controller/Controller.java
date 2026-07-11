@@ -6,8 +6,11 @@ import model.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+
+import static utils.TimeZones.EUROPE_ROME;
 
 public class Controller {
 
@@ -96,7 +99,7 @@ public class Controller {
             throw new IllegalArgumentException("Cognome obbligatorio.");
         if (dataNascita == null)
             throw new IllegalArgumentException("Data di nascita obbligatoria.");
-        if (dataNascita.isAfter(LocalDate.now()))
+        if (dataNascita.isAfter(LocalDate.now(ZoneId.of(EUROPE_ROME))))
             throw new IllegalArgumentException("La data di nascita non può essere nel futuro.");
         if (pazienteDao.findByCodiceFiscale(cf).isPresent())
             throw new IllegalArgumentException("Paziente con CF " + cf + " già registrato.");
@@ -110,7 +113,7 @@ public class Controller {
             throw new IllegalArgumentException("Nome obbligatorio.");
         if (cognome == null || cognome.isBlank())
             throw new IllegalArgumentException("Cognome obbligatorio.");
-        if (dataNascita == null || dataNascita.isAfter(LocalDate.now()))
+        if (dataNascita == null || dataNascita.isAfter(LocalDate.now(ZoneId.of(EUROPE_ROME))))
             throw new IllegalArgumentException("Data di nascita non valida.");
         Paziente p = pazienteDao.findById(idPaziente)
                 .orElseThrow(() -> new IllegalArgumentException("Paziente non trovato."));

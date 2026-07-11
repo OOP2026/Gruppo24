@@ -9,6 +9,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static javax.swing.SwingConstants.LEFT;
 import static utils.DateFormats.*;
+import static utils.TimeZones.EUROPE_ROME;
 
 public class MedicoPanel extends JPanel {
 
@@ -47,7 +49,7 @@ public class MedicoPanel extends JPanel {
         JTable table = new JTable(tableModel);
         table.setRowHeight(24);
 
-        JTextField dataField  = new JTextField(LocalDate.now().format(DATE_FMT), 10);
+        JTextField dataField  = new JTextField(LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT), 10);
         JButton oggiBtn = new JButton("Oggi");
         JButton cercaBtn = new JButton("Visualizza");
         JLabel turniLabel = new JLabel();
@@ -55,7 +57,7 @@ public class MedicoPanel extends JPanel {
         Runnable aggiorna = () -> aggiornaAgenda(panel, tableModel, dataField, turniLabel);
 
         oggiBtn.addActionListener(e -> {
-            dataField.setText(LocalDate.now().format(DATE_FMT));
+            dataField.setText(LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT));
             aggiorna.run();
         });
         cercaBtn.addActionListener(e -> aggiorna.run());
@@ -138,7 +140,7 @@ public class MedicoPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        LocalDate oggi   = LocalDate.now();
+        LocalDate oggi   = LocalDate.now(ZoneId.of(EUROPE_ROME));
         LocalDate lunedi = oggi.minusDays((long) oggi.getDayOfWeek().getValue() - 1);
 
         JLabel  settLabel = new JLabel(formatSettimana(lunedi));
@@ -227,7 +229,7 @@ public class MedicoPanel extends JPanel {
         turniInfo.setFont(new Font("Monospaced", Font.PLAIN, 11));
         turniInfo.setBackground(new Color(245, 245, 245));
         turniInfo.setBorder(BorderFactory.createTitledBorder("I miei turni questa settimana"));
-        LocalDate oggi   = LocalDate.now();
+        LocalDate oggi   = LocalDate.now(ZoneId.of(EUROPE_ROME));
         LocalDate lunedi = oggi.minusDays((long) oggi.getDayOfWeek().getValue() - 1);
         List<Turno> turniSettimana = controller.getAgendaMedico(
                 medicoCorrente.getIdMedico(), lunedi, lunedi.plusDays(6));

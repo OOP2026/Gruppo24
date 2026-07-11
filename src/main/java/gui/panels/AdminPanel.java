@@ -8,6 +8,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import java.util.Set;
 import static javax.swing.SwingConstants.LEFT;
 import static utils.DateFormats.DATE_FORMAT_PATTERN;
 import static utils.DateFormats.DATE_TIME_FORMAT_PATTERN;
+import static utils.TimeZones.EUROPE_ROME;
 
 public class AdminPanel extends JPanel {
 
@@ -345,7 +347,7 @@ public class AdminPanel extends JPanel {
         };
         JTable table = new JTable(tableModel);
 
-        JTextField dataField = new JTextField(LocalDate.now().format(DATE_FMT), 10);
+        JTextField dataField = new JTextField(LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT), 10);
         JButton    oggiBtn   = new JButton("Oggi");
         JButton    cercaBtn  = new JButton("Cerca");
 
@@ -371,7 +373,7 @@ public class AdminPanel extends JPanel {
             }
         };
 
-        oggiBtn.addActionListener(e -> { dataField.setText(LocalDate.now().format(DATE_FMT)); cerca.run(); });
+        oggiBtn.addActionListener(e -> { dataField.setText(LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT)); cerca.run(); });
         cercaBtn.addActionListener(e -> cerca.run());
         cerca.run();
 
