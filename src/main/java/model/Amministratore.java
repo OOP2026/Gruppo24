@@ -6,8 +6,6 @@ public class Amministratore {
     private String login;
     private String password;
 
-    public Amministratore() {}
-
     public Amministratore(int idAdmin, String login, String password) {
         this.idAdmin = idAdmin;
         this.login = login;
