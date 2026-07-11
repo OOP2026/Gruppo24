@@ -49,7 +49,7 @@ public class StanzaPostgresDao implements StanzaDAO {
         return result;
     }
 
-    @Override
+
     public List<Stanza> findByReparto(int idReparto) {
         String sql = "SELECT * FROM Stanza WHERE IdReparto = ? ORDER BY NumeroStanza";
         List<Stanza> result = new ArrayList<>();

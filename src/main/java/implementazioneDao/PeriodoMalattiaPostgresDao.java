@@ -53,22 +53,6 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
     }
 
     @Override
-    public List<PeriodoMalattia> findByMedico(int idMedico) {
-        String sql = "SELECT * FROM Periodo_Malattia WHERE IdMedico = ? ORDER BY DataInizioMalattia DESC";
-        List<PeriodoMalattia> result = new ArrayList<>();
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, idMedico);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new DAOException("Errore findByMedico PeriodoMalattia: " + e.getMessage(), e);
-        }
-        return result;
-    }
-
-    @Override
     public List<Sostituto> trovaSostituti(int idMedico, LocalDate inizio, LocalDate fine) {
         String sql = "SELECT Data, FasciaOraria, OraInizio, OraFine, IdSostituto, NomeSostituto, CognomeSostituto FROM trova_sostituti(?, ?, ?)";
         List<Sostituto> result = new ArrayList<>();

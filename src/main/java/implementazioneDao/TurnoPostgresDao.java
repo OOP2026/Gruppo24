@@ -113,7 +113,7 @@ public class TurnoPostgresDao implements TurnoDAO {
         }
     }
 
-    @Override
+
     public void assegnaTurno(int idMedico, LocalDate data, FasciaOraria fasciaOraria) {
         String sql = "INSERT INTO Svolge_Turno (IdMedico, Data, FasciaOraria) VALUES (?, ?, ?::fascia_oraria)";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
@@ -127,17 +127,4 @@ public class TurnoPostgresDao implements TurnoDAO {
         }
     }
 
-    @Override
-    public void rimuoviAssegnazione(int idMedico, LocalDate data, FasciaOraria fasciaOraria) {
-        String sql = "DELETE FROM Svolge_Turno WHERE IdMedico = ? AND Data = ? AND FasciaOraria = ?::fascia_oraria";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, idMedico);
-            ps.setDate(2, Date.valueOf(data));
-            ps.setString(3, fasciaOraria.name());
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new DAOException("Errore rimuoviAssegnazione: " + e.getMessage(), e);
-        }
-    }
 }
