@@ -1,17 +1,17 @@
 package gui.panels;
 
 import controller.Controller;
+import dao.DAOException;
 import model.*;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Map;
-
 
 public class MedicoPanel extends JPanel {
 
@@ -27,52 +27,67 @@ public class MedicoPanel extends JPanel {
         this.medicoCorrente = controller.getMedicoCorrente();
         setLayout(new BorderLayout());
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
-        tabs.addTab(" Agenda Giornaliera",  buildAgendaGiornalieraPanel());
-        tabs.addTab(" Agenda Settimanale",  buildAgendaSettimanalePanel());
-        tabs.addTab(" + Nuova Prestazione",   buildNuovaPrestazionePanel());
-        tabs.addTab("- Modifica Esiti",       buildModificaEsitiPanel());
+        tabs.addTab("Agenda Giornaliera",  buildAgendaGiornalieraPanel());
+        tabs.addTab("Agenda Settimanale",  buildAgendaSettimanalePanel());
+        tabs.addTab("Nuova Prestazione",   buildNuovaPrestazionePanel());
+        tabs.addTab("Modifica Esiti",      buildModificaEsitiPanel());
         add(tabs, BorderLayout.CENTER);
     }
 
+    // Agenda giornaliera
 
     private JPanel buildAgendaGiornalieraPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        String[] cols = {"Ora Inizio", "Ora Fine", "Tipo", "Paziente (CF)", "Esito"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+        String[] cols = {"Ora Inizio", "Ora Fine", "Tipo", "N. Pratica", "Esito"};
+        DefaultTableModel tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        JTable table = new JTable(model);
+        JTable table = new JTable(tableModel);
         table.setRowHeight(24);
 
         JTextField dataField = new JTextField(LocalDate.now().format(DATE_FMT), 10);
         JButton    oggiBtn   = new JButton("Oggi");
         JButton    cercaBtn  = new JButton("Visualizza");
+        JLabel     turniLabel = new JLabel();
 
         Runnable aggiorna = () -> {
             try {
                 LocalDate data = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
-                List<Prestazione> lista = controller.getAgendaGiornaliera(medicoCorrente, data);
-                model.setRowCount(0);
+                List<Prestazione> lista = controller.getPrestazioniPerGiorno(
+                        medicoCorrente.getIdMedico(), data);
+                tableModel.setRowCount(0);
                 for (Prestazione p : lista) {
-                    String esitoTrunc = p.getEsito().isEmpty() ? "–" :
-                            (p.getEsito().length() > 40 ? p.getEsito().substring(0,40)+"…" : p.getEsito());
-                    model.addRow(new Object[]{
-                        p.getInizio().format(TIME_FMT),
-                        p.getFine().format(TIME_FMT),
-                        p.getTipo(),
-                        p.getRicovero().getPaziente().getCodiceFiscale(),
-                        esitoTrunc
+                    String esito = (p.getEsito() == null || p.getEsito().isEmpty()) ? "–"
+                            : (p.getEsito().length() > 40 ? p.getEsito().substring(0, 40) + "…" : p.getEsito());
+                    tableModel.addRow(new Object[]{
+                        p.getDataInizioPrestazione().format(TIME_FMT),
+                        p.getDataFinePrestazione().format(TIME_FMT),
+                        p.getTipologiaPrestazione(),
+                        p.getNumeroPratica(),
+                        esito
                     });
                 }
-                if (lista.isEmpty()) {
-                    JLabel vuoto = new JLabel("Nessuna prestazione per " + dataField.getText().trim(),
-                            SwingConstants.CENTER);
-                    vuoto.setForeground(Color.GRAY);
+                List<Turno> turniOggi = controller.getAgendaMedico(
+                        medicoCorrente.getIdMedico(), data, data);
+                if (turniOggi.isEmpty()) {
+                    turniLabel.setText("<html><i>Nessun turno in questa data</i></html>");
+                } else {
+                    StringBuilder sb = new StringBuilder("<html><b>Turni:</b> ");
+                    turniOggi.forEach(t -> sb.append(t.getFasciaOraria())
+                            .append(" ").append(t.getOraInizio().format(TIME_FMT))
+                            .append("–").append(t.getOraFine().format(TIME_FMT))
+                            .append("  "));
+                    sb.append("</html>");
+                    turniLabel.setText(sb.toString());
                 }
             } catch (DateTimeParseException ex) {
-                JOptionPane.showMessageDialog(panel, "Formato data: dd/MM/yyyy", "Errore", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(panel, "Formato data: dd/MM/yyyy",
+                        "Errore", JOptionPane.ERROR_MESSAGE);
+            } catch (DAOException ex) {
+                JOptionPane.showMessageDialog(panel, ex.getMessage(),
+                        "Errore DB", JOptionPane.ERROR_MESSAGE);
             }
         };
 
@@ -85,14 +100,6 @@ public class MedicoPanel extends JPanel {
         top.add(dataField);
         top.add(oggiBtn);
         top.add(cercaBtn);
-
-
-        JLabel turniLabel = buildTurniLabel(LocalDate.now().getDayOfWeek());
-        dataField.addActionListener(e -> {
-            try {
-                DayOfWeek giorno = LocalDate.parse(dataField.getText().trim(), DATE_FMT).getDayOfWeek();
-            } catch (Exception ignored) {}
-        });
         top.add(Box.createHorizontalStrut(20));
         top.add(turniLabel);
 
@@ -101,70 +108,53 @@ public class MedicoPanel extends JPanel {
         return panel;
     }
 
-    private JLabel buildTurniLabel(DayOfWeek giorno) {
-        StringBuilder sb = new StringBuilder("<html><b>I miei turni oggi:</b> ");
-        medicoCorrente.getTurniProgrammati().stream()
-                .filter(t -> t.getGiornoDellaSettimana() == giorno)
-                .forEach(t -> sb.append(t.getOraInizio()).append("–").append(t.getOraFine()).append("  "));
-        boolean haTurni = medicoCorrente.getTurniProgrammati().stream()
-                .anyMatch(t -> t.getGiornoDellaSettimana() == giorno);
-        if (!haTurni) sb.append("<i>nessun turno</i>");
-        sb.append("</html>");
-        return new JLabel(sb.toString());
-    }
-
+    // Agenda settimanale
 
     private JPanel buildAgendaSettimanalePanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
+        LocalDate oggi   = LocalDate.now();
+        LocalDate lunedi = oggi.minusDays(oggi.getDayOfWeek().getValue() - 1);
 
-        LocalDate oggi    = LocalDate.now();
-        LocalDate lunedi  = oggi.minusDays(oggi.getDayOfWeek().getValue() - 1);
-
-        JLabel   settLabel  = new JLabel(formatSettimana(lunedi));
-        JButton  prevBtn    = new JButton("◀ Prev");
-        JButton  nextBtn    = new JButton("Succ ▶");
-        final LocalDate[]  settimana  = {lunedi};
-
+        JLabel  settLabel = new JLabel(formatSettimana(lunedi));
+        JButton prevBtn   = new JButton("◀ Prec");
+        JButton nextBtn   = new JButton("Succ ▶");
+        final LocalDate[] settimana = {lunedi};
 
         String[] giorni = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"};
         DefaultTableModel tableModel = new DefaultTableModel(giorni, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         JTable table = new JTable(tableModel);
-        table.setRowHeight(55);
+        table.setRowHeight(40);
 
         Runnable aggiornaSettimana = () -> {
-            Map<LocalDate, List<Prestazione>> agenda =
-                    controller.getAgendaSettimanale(medicoCorrente, settimana[0]);
+            LocalDate inizio = settimana[0];
+            LocalDate fine   = inizio.plusDays(6);
+            List<Turno> turni = controller.getAgendaMedico(
+                    medicoCorrente.getIdMedico(), inizio, fine);
             tableModel.setRowCount(0);
 
-
-            int maxRighe = agenda.values().stream()
-                    .mapToInt(List::size).max().orElse(0);
-            if (maxRighe == 0) maxRighe = 1;
-
-            for (int i = 0; i < maxRighe; i++) {
-                Object[] row = new Object[7];
-                int idx = 0;
-                for (LocalDate d = settimana[0]; !d.isAfter(settimana[0].plusDays(6)); d = d.plusDays(1)) {
-                    List<Prestazione> list = agenda.get(d);
-                    if (list != null && i < list.size()) {
-                        Prestazione p = list.get(i);
-                        row[idx] = "<html>" + p.getInizio().format(TIME_FMT) + "–"
-                                + p.getFine().format(TIME_FMT) + "<br>"
-                                + "<b>" + p.getTipo() + "</b><br>"
-                                + p.getRicovero().getPaziente().getCodiceFiscale()
-                                + "</html>";
-                    } else {
-                        row[idx] = "";
-                    }
-                    idx++;
-                }
-                tableModel.addRow(row);
+            java.util.Map<LocalDate, StringBuilder> perGiorno = new java.util.LinkedHashMap<>();
+            for (int i = 0; i < 7; i++) perGiorno.put(inizio.plusDays(i), new StringBuilder());
+            for (Turno t : turni) {
+                StringBuilder sb = perGiorno.getOrDefault(t.getData(), new StringBuilder());
+                if (sb.length() > 0) sb.append("<br>");
+                sb.append("<b>").append(t.getFasciaOraria()).append("</b> ")
+                  .append(t.getOraInizio().format(TIME_FMT))
+                  .append("–").append(t.getOraFine().format(TIME_FMT));
             }
 
+            Object[] row = new Object[7];
+            int idx = 0;
+            for (LocalDate d : perGiorno.keySet()) {
+                String content = perGiorno.get(d).toString();
+                row[idx++] = content.isEmpty()
+                        ? "<html><font color='gray'><i>–</i></font></html>"
+                        : "<html>" + content + "</html>";
+            }
+            tableModel.addRow(row);
             settLabel.setText(formatSettimana(settimana[0]));
         };
 
@@ -186,6 +176,7 @@ public class MedicoPanel extends JPanel {
         return "Settimana: " + lunedi.format(DATE_FMT) + " – " + lunedi.plusDays(6).format(DATE_FMT);
     }
 
+    // Nuova prestazione
 
     private JPanel buildNuovaPrestazionePanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -194,34 +185,38 @@ public class MedicoPanel extends JPanel {
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBorder(BorderFactory.createTitledBorder("Registra Nuova Prestazione"));
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets  = new Insets(6, 6, 6, 6);
-        gbc.fill    = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
 
+        JComboBox<Ricovero>        ricoveroCombo = buildRicoveroCombo();
+        JTextField                  inizioField   = new JTextField("dd/MM/yyyy HH:mm", 16);
+        JTextField                  fineField     = new JTextField("dd/MM/yyyy HH:mm", 16);
+        JComboBox<TipoPrestazione>  tipoCombo     = new JComboBox<>(TipoPrestazione.values());
 
-        JComboBox<Ricovero> ricoveroCombo = buildRicoveroCombo();
-        JTextField inizioField  = new JTextField("dd/MM/yyyy HH:mm", 16);
-        JTextField fineField    = new JTextField("dd/MM/yyyy HH:mm", 16);
-        JComboBox<TipoPrestazione> tipoCombo = new JComboBox<>(TipoPrestazione.values());
-
-        addRow(formPanel, gbc, 0, "Ricovero (paziente):", ricoveroCombo);
-        addRow(formPanel, gbc, 1, "Inizio:",              inizioField);
-        addRow(formPanel, gbc, 2, "Fine:",                fineField);
-        addRow(formPanel, gbc, 3, "Tipo:",                tipoCombo);
-
+        addFormRow(formPanel, gbc, 0, "Ricovero:",  ricoveroCombo);
+        addFormRow(formPanel, gbc, 1, "Inizio:",    inizioField);
+        addFormRow(formPanel, gbc, 2, "Fine:",      fineField);
+        addFormRow(formPanel, gbc, 3, "Tipo:",      tipoCombo);
 
         JTextArea turniInfo = new JTextArea(4, 30);
         turniInfo.setEditable(false);
         turniInfo.setFont(new Font("Monospaced", Font.PLAIN, 11));
         turniInfo.setBackground(new Color(245, 245, 245));
-        turniInfo.setBorder(BorderFactory.createTitledBorder("I miei turni"));
-        StringBuilder sb = new StringBuilder();
-        for (Turno t : medicoCorrente.getTurniProgrammati()) {
-            sb.append(t.getGiornoDellaSettimana())
-              .append(":  ").append(t.getOraInizio())
-              .append("–").append(t.getOraFine()).append("\n");
+        turniInfo.setBorder(BorderFactory.createTitledBorder("I miei turni questa settimana"));
+        LocalDate oggi   = LocalDate.now();
+        LocalDate lunedi = oggi.minusDays(oggi.getDayOfWeek().getValue() - 1);
+        List<Turno> turniSettimana = controller.getAgendaMedico(
+                medicoCorrente.getIdMedico(), lunedi, lunedi.plusDays(6));
+        if (turniSettimana.isEmpty()) {
+            turniInfo.setText("Nessun turno programmato questa settimana.");
+        } else {
+            StringBuilder sb = new StringBuilder();
+            turniSettimana.forEach(t -> sb.append(t.getData().format(DATE_FMT))
+                    .append("  ").append(t.getFasciaOraria())
+                    .append("  ").append(t.getOraInizio().format(TIME_FMT))
+                    .append("–").append(t.getOraFine().format(TIME_FMT)).append("\n"));
+            turniInfo.setText(sb.toString());
         }
-        turniInfo.setText(sb.length() > 0 ? sb.toString() : "Nessun turno programmato.");
-
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         formPanel.add(turniInfo, gbc);
 
@@ -237,22 +232,21 @@ public class MedicoPanel extends JPanel {
         registraBtn.addActionListener(e -> {
             try {
                 Ricovero ricovero = (Ricovero) ricoveroCombo.getSelectedItem();
-                if (ricovero == null) { statusLabel.setText("⚠ Selezionare un ricovero."); return; }
+                if (ricovero == null) { statusLabel.setText("Selezionare un ricovero."); return; }
                 LocalDateTime inizio = LocalDateTime.parse(inizioField.getText().trim(), DATETIME_FMT);
-                LocalDateTime fine   = LocalDateTime.parse(fineField.getText().trim(),   DATETIME_FMT);
+                LocalDateTime fine   = LocalDateTime.parse(fineField.getText().trim(), DATETIME_FMT);
                 TipoPrestazione tipo = (TipoPrestazione) tipoCombo.getSelectedItem();
-
-                controller.registraPrestazione(medicoCorrente, ricovero, inizio, fine, tipo);
+                controller.registraPrestazione(ricovero.getNumeroPratica(), inizio, fine, tipo);
                 statusLabel.setForeground(new Color(39, 174, 96));
-                statusLabel.setText("✓ Prestazione registrata con successo.");
+                statusLabel.setText("Prestazione registrata con successo.");
                 inizioField.setText("");
                 fineField.setText("");
             } catch (DateTimeParseException ex) {
                 statusLabel.setForeground(Color.RED);
-                statusLabel.setText("⚠ Formato data non valido (dd/MM/yyyy HH:mm).");
+                statusLabel.setText("Formato data non valido (dd/MM/yyyy HH:mm).");
             } catch (Exception ex) {
                 statusLabel.setForeground(Color.RED);
-                statusLabel.setText("⚠ " + ex.getMessage());
+                statusLabel.setText(ex.getMessage());
             }
         });
 
@@ -260,33 +254,40 @@ public class MedicoPanel extends JPanel {
         return panel;
     }
 
-
+    // Modifica esiti
 
     private JPanel buildModificaEsitiPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        String[] cols = {"Data", "Ora", "Tipo", "Paziente (CF)", "Esito attuale"};
+        String[] cols = {"Data", "Orario", "Tipo", "N. Pratica", "Esito attuale"};
         DefaultTableModel tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         JTable table = new JTable(tableModel);
         table.setRowHeight(22);
 
+        java.util.concurrent.atomic.AtomicReference<List<Prestazione>> cache =
+                new java.util.concurrent.atomic.AtomicReference<>(null);
+
         Runnable refreshEsiti = () -> {
+            List<Prestazione> lista = controller.getPrestazioniMedico(medicoCorrente.getIdMedico());
+            cache.set(lista);
             tableModel.setRowCount(0);
-            for (Prestazione p : medicoCorrente.getPrestazioniErogate()) {
+            for (Prestazione p : lista) {
+                String esito = (p.getEsito() == null || p.getEsito().isEmpty())
+                        ? "(non compilato)" : p.getEsito();
                 tableModel.addRow(new Object[]{
-                    p.getInizio().toLocalDate().format(DATE_FMT),
-                    p.getInizio().format(TIME_FMT) + "–" + p.getFine().format(TIME_FMT),
-                    p.getTipo(),
-                    p.getRicovero().getPaziente().getCodiceFiscale(),
-                    p.getEsito().isEmpty() ? "(non compilato)" : p.getEsito()
+                    p.getDataInizioPrestazione().toLocalDate().format(DATE_FMT),
+                    p.getDataInizioPrestazione().format(TIME_FMT) + "–"
+                            + p.getDataFinePrestazione().format(TIME_FMT),
+                    p.getTipologiaPrestazione(),
+                    p.getNumeroPratica(),
+                    esito
                 });
             }
         };
         refreshEsiti.run();
-
 
         JPanel editPanel = new JPanel(new BorderLayout(5, 5));
         editPanel.setBorder(BorderFactory.createTitledBorder("Compila / Modifica Esito"));
@@ -294,43 +295,60 @@ public class MedicoPanel extends JPanel {
         JTextArea esitoArea = new JTextArea(4, 40);
         esitoArea.setLineWrap(true);
         esitoArea.setWrapStyleWord(true);
-        JButton salvaBtn = new JButton("Salva Esito");
+        JButton salvaBtn     = new JButton("Salva Esito");
+        JButton aggiornaBtn  = new JButton("Aggiorna lista");
         salvaBtn.setFont(new Font("SansSerif", Font.BOLD, 12));
-
 
         table.getSelectionModel().addListSelectionListener(e -> {
             int row = table.getSelectedRow();
-            if (row < 0 || row >= medicoCorrente.getPrestazioniErogate().size()) return;
-            Prestazione p = medicoCorrente.getPrestazioniErogate().get(row);
-            esitoArea.setText(p.getEsito());
+            List<Prestazione> lista = cache.get();
+            if (lista == null || row < 0 || row >= lista.size()) return;
+            Prestazione p = lista.get(row);
+            esitoArea.setText(p.getEsito() == null ? "" : p.getEsito());
         });
 
         salvaBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row < 0) {
-                JOptionPane.showMessageDialog(panel, "Selezionare una prestazione.", "Avviso", JOptionPane.WARNING_MESSAGE);
+            List<Prestazione> lista = cache.get();
+            if (row < 0 || lista == null) {
+                JOptionPane.showMessageDialog(panel, "Selezionare una prestazione.",
+                        "Avviso", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             String nuovoEsito = esitoArea.getText().trim();
             if (nuovoEsito.isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "L'esito non può essere vuoto.", "Avviso", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(panel, "L'esito non può essere vuoto.",
+                        "Avviso", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            Prestazione p = medicoCorrente.getPrestazioniErogate().get(row);
-            controller.aggiornaEsito(p, nuovoEsito);
-            refreshEsiti.run();
-            JOptionPane.showMessageDialog(panel, "Esito salvato.", "OK", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                Prestazione p = lista.get(row);
+                controller.aggiornaEsito(p.getNumeroPratica(), p.getNumeroPrestazione(), nuovoEsito);
+                refreshEsiti.run();
+                JOptionPane.showMessageDialog(panel, "Esito salvato.", "OK", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(panel, ex.getMessage(), "Errore", JOptionPane.ERROR_MESSAGE);
+            }
         });
 
-        editPanel.add(new JScrollPane(esitoArea), BorderLayout.CENTER);
-        editPanel.add(salvaBtn,                   BorderLayout.SOUTH);
+        aggiornaBtn.addActionListener(e -> refreshEsiti.run());
 
-        panel.add(new JScrollPane(table), BorderLayout.CENTER);
-        panel.add(editPanel,              BorderLayout.SOUTH);
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        btnPanel.add(aggiornaBtn);
+
+        JPanel bottomEdit = new JPanel(new BorderLayout());
+        bottomEdit.add(new JScrollPane(esitoArea), BorderLayout.CENTER);
+        bottomEdit.add(salvaBtn,                   BorderLayout.SOUTH);
+
+        editPanel.add(bottomEdit, BorderLayout.CENTER);
+
+        panel.add(btnPanel,                BorderLayout.NORTH);
+        panel.add(new JScrollPane(table),  BorderLayout.CENTER);
+        panel.add(editPanel,               BorderLayout.SOUTH);
         return panel;
     }
 
-
+    // Helper
 
     private JComboBox<Ricovero> buildRicoveroCombo() {
         JComboBox<Ricovero> cb = new JComboBox<>();
@@ -340,18 +358,16 @@ public class MedicoPanel extends JPanel {
             public Component getListCellRendererComponent(JList<?> list, Object v,
                     int idx, boolean sel, boolean focus) {
                 super.getListCellRendererComponent(list, v, idx, sel, focus);
-                if (v instanceof Ricovero r) {
-                    Paziente p = r.getPaziente();
-                    setText(p.getNome() + " " + p.getCognome() + " (" + p.getCodiceFiscale() + ")"
-                            + " – " + r.getLetto().getCodiceUnivoco());
-                }
+                if (v instanceof Ricovero r)
+                    setText(r.getNumeroPratica() + " – letto " + r.getCodiceUnivocoLetto());
                 return this;
             }
         });
         return cb;
     }
 
-    private void addRow(JPanel p, GridBagConstraints gbc, int row, String label, JComponent comp) {
+    private void addFormRow(JPanel p, GridBagConstraints gbc, int row,
+                             String label, JComponent comp) {
         gbc.gridwidth = 1;
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = 0;
         p.add(new JLabel(label), gbc);

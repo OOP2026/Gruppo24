@@ -3,11 +3,9 @@ package gui;
 import controller.Controller;
 import gui.panels.AdminPanel;
 import gui.panels.MedicoPanel;
-import model.Medico;
 
 import javax.swing.*;
 import java.awt.*;
-
 
 public class MainFrame extends JFrame {
 
@@ -21,18 +19,11 @@ public class MainFrame extends JFrame {
 
     private void buildUI() {
         JPanel rootPanel = new JPanel(new BorderLayout());
+        rootPanel.add(buildTopBar(), BorderLayout.NORTH);
 
-
-        JPanel topBar = buildTopBar();
-        rootPanel.add(topBar, BorderLayout.NORTH);
-
-
-        JPanel mainPanel;
-        if (controller.isAmministratore()) {
-            mainPanel = new AdminPanel(controller);
-        } else {
-            mainPanel = new MedicoPanel(controller);
-        }
+        JPanel mainPanel = controller.isAmministratore()
+                ? new AdminPanel(controller)
+                : new MedicoPanel(controller);
         rootPanel.add(mainPanel, BorderLayout.CENTER);
 
         add(rootPanel);
@@ -45,24 +36,23 @@ public class MainFrame extends JFrame {
 
         String nomeUtente;
         if (controller.isMedico()) {
-            Medico m = controller.getMedicoCorrente();
-            nomeUtente = m.getNome() + " " + m.getCognome()
-                    + " – " + m.getReparto().getNome();
+            nomeUtente = controller.getMedicoCorrente().getNome()
+                    + " " + controller.getMedicoCorrente().getCognome()
+                    + " – " + controller.getNomeRepartoMedicoCorrente();
         } else {
-            nomeUtente = "Amministratore: " + controller.getUtenteCorrente().getLogin();
+            nomeUtente = "Amministratore: " + controller.getAmministratoreCorrente().getLogin();
         }
+
         JLabel userLabel = new JLabel(nomeUtente);
         userLabel.setForeground(Color.WHITE);
         userLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
         topBar.add(userLabel, BorderLayout.WEST);
 
-        //
-        JLabel titleLabel = new JLabel("Ospedale", SwingConstants.CENTER);
+        JLabel titleLabel = new JLabel("Gestione Ospedale", SwingConstants.CENTER);
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         topBar.add(titleLabel, BorderLayout.CENTER);
 
-        // logout
         JButton logoutBtn = new JButton("Logout");
         logoutBtn.addActionListener(e -> handleLogout());
         topBar.add(logoutBtn, BorderLayout.EAST);
@@ -79,7 +69,7 @@ public class MainFrame extends JFrame {
     private void configFrame() {
         setTitle("Gestione Ospedale");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1000, 680);
+        setSize(1100, 720);
         setLocationRelativeTo(null);
     }
 }
