@@ -10,14 +10,13 @@ public class LoginFrame extends JFrame {
 
     private transient final Controller controller;
 
-    private JPanel         rootPanel;
-    private JLabel         titleLabel;
-    private JLabel         loginLabel;
-    private JLabel         passwordLabel;
-    private JTextField     loginField;
+    private JLabel titleLabel;
+    private JLabel loginLabel;
+    private JLabel passwordLabel;
+    private JTextField loginField;
     private JPasswordField passwordField;
-    private JButton        loginButton;
-    private JLabel         statusLabel;
+    private JButton loginButton;
+    private JLabel statusLabel;
 
     public LoginFrame(Controller controller) {
         this.controller = controller;
@@ -26,7 +25,7 @@ public class LoginFrame extends JFrame {
     }
 
     private void buildUI() {
-        rootPanel = new JPanel(new BorderLayout(0, 10));
+        JPanel rootPanel = new JPanel(new BorderLayout(0, 10));
         rootPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 20, 40));
 
         titleLabel = new JLabel("Accesso Utente Ospedale", SwingConstants.CENTER);

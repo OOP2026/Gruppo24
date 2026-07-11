@@ -286,15 +286,7 @@ public class AdminPanel extends JPanel {
             Set<String> occupati = new HashSet<>();
             controller.getLettiOccupati().forEach(l -> occupati.add(l.getCodiceUnivoco()));
             for (Letto l : controller.getLettiPerReparto(rep.getIdReparto())) {
-                boolean isOccupato = occupati.contains(l.getCodiceUnivoco());
-                JLabel badge = new JLabel(l.getCodiceUnivoco(), SwingConstants.CENTER);
-                badge.setOpaque(true);
-                badge.setPreferredSize(new Dimension(130, 50));
-                badge.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
-                badge.setBackground(isOccupato ? Color.RED : new Color(39, 174, 96));
-                badge.setForeground(Color.WHITE);
-                badge.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
-                badge.setToolTipText(isOccupato ? "OCCUPATO" : "DISPONIBILE");
+                JLabel badge = getJLabel(l, occupati);
                 lettiGrid.add(badge);
             }
             lettiGrid.revalidate();
@@ -321,6 +313,19 @@ public class AdminPanel extends JPanel {
         panel.add(top,    BorderLayout.NORTH);
         panel.add(scroll, BorderLayout.CENTER);
         return panel;
+    }
+
+    private static JLabel getJLabel(Letto l, Set<String> occupati) {
+        boolean isOccupato = occupati.contains(l.getCodiceUnivoco());
+        JLabel badge = new JLabel(l.getCodiceUnivoco(), SwingConstants.CENTER);
+        badge.setOpaque(true);
+        badge.setPreferredSize(new Dimension(130, 50));
+        badge.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
+        badge.setBackground(isOccupato ? Color.RED : new Color(39, 174, 96));
+        badge.setForeground(Color.WHITE);
+        badge.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
+        badge.setToolTipText(isOccupato ? "OCCUPATO" : "DISPONIBILE");
+        return badge;
     }
 
     // Dimissioni
@@ -493,12 +498,6 @@ public class AdminPanel extends JPanel {
     }
 
     // Helper
-
-    private JComboBox<Paziente> buildPazienteCombo() {
-        JComboBox<Paziente> cb = new JComboBox<>();
-        controller.getPazienti().forEach(cb::addItem);
-        return cb;
-    }
 
     private JComboBox<Reparto> buildRepartoCombo() {
         JComboBox<Reparto> cb = new JComboBox<>();

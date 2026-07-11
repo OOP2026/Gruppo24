@@ -9,7 +9,6 @@ public interface LettoDAO {
     Optional<Letto> findById(String codiceUnivoco);
     List<Letto> findAll();
     List<Letto> findByReparto(int idReparto);
-    List<Letto> trovaLettiDisponibiliInReparto(int idReparto);
     List<Letto> trovaLettiOccupati();
     void insert(Letto l);
     void update(Letto l);

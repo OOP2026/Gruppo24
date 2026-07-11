@@ -10,7 +10,6 @@ import java.util.Optional;
 public interface RicoveroDAO {
     Optional<Ricovero> findById(String numeroPratica);
     List<Ricovero> findAll();
-    List<Ricovero> findByPaziente(int idPaziente);
     List<Ricovero> findInCorso();
     List<PazienteInDimissione> trovaRicoveriInDimissione(LocalDate data);
     void insert(Ricovero r);
