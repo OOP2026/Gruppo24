@@ -26,10 +26,10 @@ public class MedicoPanel extends JPanel {
         this.medicoCorrente = controller.getMedicoCorrente();
         setLayout(new BorderLayout());
         JTabbedPane tabs = new JTabbedPane(LEFT);
-        tabs.addTab("Agenda Giornaliera",  buildAgendaGiornalieraPanel());
-        tabs.addTab("Agenda Settimanale",  buildAgendaSettimanalePanel());
-        tabs.addTab("Nuova Prestazione",   buildNuovaPrestazionePanel());
-        tabs.addTab("Modifica Esiti",      buildModificaEsitiPanel());
+        tabs.addTab("Agenda Giornaliera", buildAgendaGiornalieraPanel());
+        tabs.addTab("Agenda Settimanale", buildAgendaSettimanalePanel());
+        tabs.addTab("Nuova Prestazione", buildNuovaPrestazionePanel());
+        tabs.addTab("Modifica Esiti", buildModificaEsitiPanel());
         add(tabs, BorderLayout.CENTER);
     }
 
