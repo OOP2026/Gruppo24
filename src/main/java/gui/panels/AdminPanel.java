@@ -169,7 +169,7 @@ public class AdminPanel extends JPanel {
             repartoCombo.addActionListener(e -> aggiornaLetti());
             if (repartoCombo.getItemCount() > 0) repartoCombo.setSelectedIndex(0);
 
-            JButton addBtn    = new JButton("Registra Ricovero");
+            JButton addBtn = new JButton("Registra Ricovero");
             JButton dimettBtn = new JButton("Registra Dimissione");
             addBtn.addActionListener(e -> handleAggiungiRicovero());
             dimettBtn.addActionListener(e -> handleDimissione());
@@ -186,7 +186,11 @@ public class AdminPanel extends JPanel {
 
         private JPanel buildFormPanel() {
             JPanel formPanel = new JPanel(new GridBagLayout());
+            formPanel.setBorder(BorderFactory.createTitledBorder("Registra Ricovero"));
+
             GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(4, 8, 4, 8);
+
             addFormRow(formPanel, gbc, 0, "N. Pratica:", praticaField);
             addFormRow(formPanel, gbc, 1, "Paziente:",   pazienteCombo);
             addFormRow(formPanel, gbc, 2, "Reparto:",    repartoCombo);
@@ -519,11 +523,22 @@ public class AdminPanel extends JPanel {
     }
 
     private void addFormRow(JPanel p, GridBagConstraints gbc, int row,
-                             String label, JComponent comp) {
+                            String label, JComponent comp) {
+        gbc.gridy = row;
+
+        // Colonna 0: Label (fissa a sinistra, non si espande)
+        gbc.gridx = 0;
         gbc.gridwidth = 1;
-        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = 0;
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.LINE_START;
         p.add(new JLabel(label), gbc);
-        gbc.gridx = 1; gbc.weightx = 1.0;
+
+        // Colonna 1: Componente di input (si espande e riempie la riga)
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.LINE_START;
         p.add(comp, gbc);
     }
 
