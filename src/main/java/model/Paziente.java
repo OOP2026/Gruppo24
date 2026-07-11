@@ -10,7 +10,6 @@ public class Paziente {
     private String cognome;
     private LocalDate dataNascita;
 
-    public Paziente() {}
 
     public Paziente(int idPaziente, String codiceFiscale, String nome,
                     String cognome, LocalDate dataNascita) {
@@ -25,7 +24,7 @@ public class Paziente {
     public void setIdPaziente(int idPaziente) { this.idPaziente = idPaziente; }
 
     public String getCodiceFiscale() { return codiceFiscale; }
-    public void setCodiceFiscale(String codiceFiscale) { this.codiceFiscale = codiceFiscale; }
+
 
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
