@@ -25,7 +25,7 @@ public class AdminPanel extends JPanel {
 
     private static final String FONT_SANS_SERIF = "SansSerif";
 
-    private transient final Controller controller;
+    private final transient  Controller controller;
 
     public AdminPanel(Controller controller) {
         this.controller = controller;

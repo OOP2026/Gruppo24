@@ -18,8 +18,8 @@ import static utils.DateFormats.*;
 
 public class MedicoPanel extends JPanel {
 
-    private transient final Controller controller;
-    private transient final Medico medicoCorrente;
+    private final transient  Controller controller;
+    private final transient  Medico medicoCorrente;
 
     public MedicoPanel(Controller controller) {
         this.controller     = controller;
