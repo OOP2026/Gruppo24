@@ -14,20 +14,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static javax.swing.SwingConstants.LEFT;
+
 public class AdminPanel extends JPanel {
 
-    private static final String dateFormatPattern = "dd/MM/yyyy";
-    private static final String dateTimeFormatPattern = "dd/MM/yyyy HH:mm";
+    private static final String DATE_FORMAT_PATTERN = "dd/MM/yyyy";
+    private static final String DATE_TIME_FORMAT_PATTERN = "dd/MM/yyyy HH:mm";
 
-    private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern(dateFormatPattern);
-    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern(dateTimeFormatPattern);
+    private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN);
+    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT_PATTERN);
 
     private transient final Controller controller;
 
     public AdminPanel(Controller controller) {
         this.controller = controller;
         setLayout(new BorderLayout());
-        JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
+        JTabbedPane tabs = new JTabbedPane(LEFT);
         tabs.addTab("Pazienti",    buildPazientiPanel());
         tabs.addTab("Ricoveri",    buildRicoveriPanel());
         tabs.addTab("Malattia",    buildMalattiaPanel());
@@ -142,19 +144,16 @@ public class AdminPanel extends JPanel {
         JTable table = new JTable(tableModel);
         refreshRicoveri(tableModel);
 
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createTitledBorder("Nuovo Ricovero"));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(4, 4, 4, 4);
-        gbc.fill   = GridBagConstraints.HORIZONTAL;
-
-        JTextField       praticaField  = new JTextField(12);
-        JTextField       motivoField   = new JTextField(25);
-        JComboBox<Paziente> pazienteCombo = buildPazienteCombo();
-        JComboBox<Reparto>  repartoCombo  = buildRepartoCombo();
+        JTextField praticaField  = new JTextField(15);
+        JComboBox<Paziente> pazienteCombo = new JComboBox<>();
+        JComboBox<Reparto>  repartoCombo  = new JComboBox<>();
         JComboBox<Letto>    lettoCombo    = new JComboBox<>();
-        JTextField          inizioField   = new JTextField(dateTimeFormatPattern, 16);
-        JTextField          fineField     = new JTextField(dateTimeFormatPattern + "(facoltativo)", 22);
+        JTextField inizioField = new JTextField(DATE_TIME_FORMAT_PATTERN, 22);
+        JTextField fineField   = new JTextField(DATE_TIME_FORMAT_PATTERN + "(facoltativo)", 22);
+        JTextField motivoField = new JTextField(20);
+
+        controller.getPazienti().forEach(pazienteCombo::addItem);
+        controller.getReparti().forEach(repartoCombo::addItem);
 
         repartoCombo.addActionListener(e -> {
             lettoCombo.removeAllItems();
@@ -163,70 +162,97 @@ public class AdminPanel extends JPanel {
         });
         if (repartoCombo.getItemCount() > 0) repartoCombo.setSelectedIndex(0);
 
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
         addFormRow(formPanel, gbc, 0, "N. Pratica:", praticaField);
         addFormRow(formPanel, gbc, 1, "Paziente:",   pazienteCombo);
         addFormRow(formPanel, gbc, 2, "Reparto:",    repartoCombo);
         addFormRow(formPanel, gbc, 3, "Letto:",      lettoCombo);
         addFormRow(formPanel, gbc, 4, "Inizio:",     inizioField);
-        addFormRow(formPanel, gbc, 5, "Dimissione (prev.):", fineField);
+        addFormRow(formPanel, gbc, 5, "Fine:",       fineField);
         addFormRow(formPanel, gbc, 6, "Motivo:",     motivoField);
 
-        JButton addBtn    = new JButton("Aggiungi Ricovero");
+        JButton addBtn    = new JButton("Registra Ricovero");
         JButton dimettBtn = new JButton("Registra Dimissione");
-        JPanel btnPanel   = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        addBtn.addActionListener(e -> handleAggiungiRicovero(
+                panel, tableModel, praticaField, pazienteCombo, lettoCombo,
+                inizioField, fineField, motivoField));
+
+        dimettBtn.addActionListener(e -> handleDimissione(panel, table, tableModel));
+
+        JPanel btnPanel = new JPanel();
         btnPanel.add(addBtn);
         btnPanel.add(dimettBtn);
-        gbc.gridx = 0; gbc.gridy = 7; gbc.gridwidth = 2;
-        formPanel.add(btnPanel, gbc);
-
-        addBtn.addActionListener(e -> {
-            try {
-                Paziente paz  = (Paziente) pazienteCombo.getSelectedItem();
-                Letto    letto = (Letto) lettoCombo.getSelectedItem();
-                if (paz == null || letto == null) { showError(panel, "Selezionare paziente e letto."); return; }
-                LocalDateTime inizio = LocalDateTime.parse(inizioField.getText().trim(), DATETIME_FMT);
-                LocalDateTime fine   = null;
-                String fineStr = fineField.getText().trim();
-                if (!fineStr.isEmpty() && !fineStr.startsWith("dd/MM")) {
-                    fine = LocalDateTime.parse(fineStr, DATETIME_FMT);
-                }
-                controller.registraRicovero(praticaField.getText().trim(), paz.getIdPaziente(),
-                        letto.getCodiceUnivoco(), inizio, fine, motivoField.getText().trim());
-                refreshRicoveri(tableModel);
-                clearFields(praticaField, inizioField, fineField, motivoField);
-                showInfo(panel, "Ricovero registrato.");
-            } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido. Usare: " + dateTimeFormatPattern);
-            } catch (Exception ex) {
-                showError(panel, ex.getMessage());
-            }
-        });
-
-        dimettBtn.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row < 0) { showError(panel, "Selezionare un ricovero dalla tabella."); return; }
-            if ("No".equals(tableModel.getValueAt(row, 4))) {
-                showError(panel, "Ricovero già concluso."); return;
-            }
-            String numeroPratica = (String) tableModel.getValueAt(row, 0);
-            String dataStr = JOptionPane.showInputDialog(panel,
-                "Data e ora dimissione " + dateTimeFormatPattern, "Registra Dimissione", JOptionPane.QUESTION_MESSAGE);
-            if (dataStr == null) return;
-            try {
-                LocalDateTime dataDimissione = LocalDateTime.parse(dataStr.trim(), DATETIME_FMT);
-                controller.registraDimissione(numeroPratica, dataDimissione);
-                refreshRicoveri(tableModel);
-                showInfo(panel, "Dimissione registrata.");
-            } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido.");
-            } catch (Exception ex) {
-                showError(panel, ex.getMessage());
-            }
-        });
 
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
-        panel.add(formPanel, BorderLayout.SOUTH);
+        panel.add(formPanel, BorderLayout.NORTH);
+        panel.add(btnPanel, BorderLayout.SOUTH);
         return panel;
+    }
+
+    private void handleAggiungiRicovero(JPanel panel, DefaultTableModel tableModel,
+                                        JTextField praticaField, JComboBox<Paziente> pazienteCombo,
+                                        JComboBox<Letto> lettoCombo, JTextField inizioField,
+                                        JTextField fineField, JTextField motivoField) {
+        try {
+            Paziente paz  = (Paziente) pazienteCombo.getSelectedItem();
+            Letto    letto = (Letto) lettoCombo.getSelectedItem();
+            if (paz == null || letto == null) {
+                showError(panel, "Selezionare paziente e letto.");
+                return;
+            }
+            LocalDateTime inizio = LocalDateTime.parse(inizioField.getText().trim(), DATETIME_FMT);
+            LocalDateTime fine   = parseFineOptional(fineField.getText().trim());
+
+            controller.registraRicovero(praticaField.getText().trim(), paz.getIdPaziente(),
+                    letto.getCodiceUnivoco(), inizio, fine, motivoField.getText().trim());
+            refreshRicoveri(tableModel);
+            clearFields(praticaField, inizioField, fineField, motivoField);
+            showInfo(panel, "Ricovero registrato.");
+        } catch (DateTimeParseException ex) {
+            showError(panel, "Formato data non valido. Usare: " + DATE_TIME_FORMAT_PATTERN);
+        } catch (Exception ex) {
+            showError(panel, ex.getMessage());
+        }
+    }
+
+    private LocalDateTime parseFineOptional(String fineStr) {
+        if (fineStr.isEmpty() || fineStr.startsWith("dd/MM")) return null;
+        return LocalDateTime.parse(fineStr, DATETIME_FMT);
+    }
+
+    private void handleDimissione(JPanel panel, JTable table, DefaultTableModel tableModel) {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            showError(panel, "Selezionare un ricovero dalla tabella.");
+            return;
+        }
+        if ("No".equals(tableModel.getValueAt(row, 4))) {
+            showError(panel, "Ricovero già concluso.");
+            return;
+        }
+        String numeroPratica = (String) tableModel.getValueAt(row, 0);
+        String dataStr = JOptionPane.showInputDialog(panel,
+                "Data e ora dimissione " + DATE_TIME_FORMAT_PATTERN,
+                "Registra Dimissione", JOptionPane.QUESTION_MESSAGE);
+        if (dataStr == null) return;
+
+        eseguiDimissione(panel, tableModel, numeroPratica, dataStr.trim());
+    }
+
+    private void eseguiDimissione(JPanel panel, DefaultTableModel tableModel,
+                                  String numeroPratica, String dataStr) {
+        try {
+            LocalDateTime dataDimissione = LocalDateTime.parse(dataStr, DATETIME_FMT);
+            controller.registraDimissione(numeroPratica, dataDimissione);
+            refreshRicoveri(tableModel);
+            showInfo(panel, "Dimissione registrata.");
+        } catch (DateTimeParseException ex) {
+            showError(panel, "Formato data non valido.");
+        } catch (Exception ex) {
+            showError(panel, ex.getMessage());
+        }
     }
 
     private void refreshRicoveri(DefaultTableModel model) {
@@ -328,7 +354,7 @@ public class AdminPanel extends JPanel {
                 if (risultati.isEmpty())
                     showInfo(panel, "Nessuna dimissione prevista per " + dataField.getText().trim());
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido " + dateFormatPattern);
+                showError(panel, "Formato data non valido " + DATE_FORMAT_PATTERN);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -339,7 +365,7 @@ public class AdminPanel extends JPanel {
         cerca.run();
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        top.add(new JLabel("Data dimissione " + dateFormatPattern));
+        top.add(new JLabel("Data dimissione " + DATE_FORMAT_PATTERN));
         top.add(dataField);
         top.add(oggiBtn);
         top.add(cercaBtn);
@@ -400,8 +426,8 @@ public class AdminPanel extends JPanel {
 
         JComboBox<Medico> medicoCombo   = buildMedicoCombo();
         JTextField        codiceField   = new JTextField(15);
-        JTextField        inizioField   = new JTextField(dateFormatPattern, 10);
-        JTextField        fineField     = new JTextField(dateFormatPattern, 10);
+        JTextField        inizioField   = new JTextField(DATE_FORMAT_PATTERN, 10);
+        JTextField        fineField     = new JTextField(DATE_FORMAT_PATTERN, 10);
 
         addFormRow(formPanel, gbc, 0, "Medico:",              medicoCombo);
         addFormRow(formPanel, gbc, 1, "Codice Certificato:",  codiceField);
@@ -418,7 +444,7 @@ public class AdminPanel extends JPanel {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         JTable sostitutoTable = new JTable(sostitutoModel);
-        JLabel sostitutoHeader = new JLabel("Sostituti disponibili per i turni scoperti:", SwingConstants.LEFT);
+        JLabel sostitutoHeader = new JLabel("Sostituti disponibili per i turni scoperti:", LEFT);
         sostitutoHeader.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         registraBtn.addActionListener(e -> {
@@ -450,7 +476,7 @@ public class AdminPanel extends JPanel {
                 showInfo(panel, "Periodo di malattia registrato per Dr. "
                         + medico.getNome() + " " + medico.getCognome() + ".");
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido " + dateFormatPattern);
+                showError(panel, "Formato data non valido " + DATE_FORMAT_PATTERN);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
