@@ -22,7 +22,7 @@ public class StanzaPostgresDao implements StanzaDAO {
 
     @Override
     public Optional<Stanza> findById(int idReparto, String numeroStanza) {
-        String sql = "SELECT * FROM Stanza WHERE IdReparto = ? AND NumeroStanza = ?";
+        String sql = "SELECT idreparto,numerostanza,capienzamax FROM Stanza WHERE IdReparto = ? AND NumeroStanza = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, idReparto);
@@ -37,7 +37,7 @@ public class StanzaPostgresDao implements StanzaDAO {
 
     @Override
     public List<Stanza> findAll() {
-        String sql = "SELECT * FROM Stanza ORDER BY IdReparto, NumeroStanza";
+        String sql = "SELECT idreparto,numerostanza,capienzamax FROM Stanza ORDER BY IdReparto, NumeroStanza";
         List<Stanza> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -51,7 +51,7 @@ public class StanzaPostgresDao implements StanzaDAO {
 
 
     public List<Stanza> findByReparto(int idReparto) {
-        String sql = "SELECT * FROM Stanza WHERE IdReparto = ? ORDER BY NumeroStanza";
+        String sql = "SELECT idreparto,numerostanza,capienzamax FROM Stanza WHERE IdReparto = ? ORDER BY NumeroStanza";
         List<Stanza> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
