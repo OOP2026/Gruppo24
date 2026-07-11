@@ -9,7 +9,6 @@ import java.util.Optional;
 public interface PrestazioneDAO {
     Optional<Prestazione> findById(String numeroPratica, int numeroPrestazione);
     List<Prestazione> findAll();
-    List<Prestazione> findByRicovero(String numeroPratica);
     List<Prestazione> findByMedico(int idMedico);
     List<Prestazione> findByMedicoAndDate(int idMedico, LocalDate data);
     void insert(Prestazione p);

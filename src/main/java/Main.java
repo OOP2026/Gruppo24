@@ -2,13 +2,17 @@ import controller.Controller;
 import gui.LoginFrame;
 
 import javax.swing.*;
+import java.util.logging.Logger;
 
 public class Main {
     public static void main(String[] args) {
+
+        Logger logger = Logger.getLogger(Main.class.getName());
+
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
-            System.err.println("Impossibile impostare il Look and Feel di sistema: " + e.getMessage());
+            logger.info("Impossibile impostare il Look and Feel di sistema: " + e.getMessage());
         }
 
         SwingUtilities.invokeLater(() -> {

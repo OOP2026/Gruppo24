@@ -10,7 +10,6 @@ import java.util.Optional;
 public interface PeriodoMalattiaDAO {
     Optional<PeriodoMalattia> findById(String codiceCertificato);
     List<PeriodoMalattia> findAll();
-    List<PeriodoMalattia> findByMedico(int idMedico);
     List<Sostituto> trovaSostituti(int idMedico, LocalDate inizio, LocalDate fine);
     void insert(PeriodoMalattia pm);
     void update(PeriodoMalattia pm);
