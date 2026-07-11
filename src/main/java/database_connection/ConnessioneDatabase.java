@@ -2,15 +2,16 @@ package database_connection;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.logging.Logger;
+
 
 public class ConnessioneDatabase {
 
-    private static final Logger LOG = Logger.getLogger(ConnessioneDatabase.class.getName());
+
     private static ConnessioneDatabase instance;
 
     private final String url;
@@ -22,12 +23,12 @@ public class ConnessioneDatabase {
         try (InputStream is = ConnessioneDatabase.class
                 .getClassLoader().getResourceAsStream("db.properties")) {
             if (is == null)
-                throw new RuntimeException(
+                throw new IllegalArgumentException(
                     "File db.properties non trovato nel classpath. "
                 );
             props.load(is);
         } catch (IOException e) {
-            throw new RuntimeException("Impossibile leggere db.properties: " + e.getMessage(), e);
+            throw new UncheckedIOException("Impossibile leggere db.properties: " + e.getMessage(), e);
         }
         this.url      = props.getProperty("db.url");
         this.user     = props.getProperty("db.user");

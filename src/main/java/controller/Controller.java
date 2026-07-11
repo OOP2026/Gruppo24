@@ -20,7 +20,7 @@ public class Controller {
     private final PrestazioneDAO prestazioneDao;
     private final TurnoDAO turnoDao;
     private final PeriodoMalattiaDAO periodoMalattiaDao;
-    private final SpecializzazioneDAO specializzazioneDao;
+
 
     private Amministratore amministratoreCorrente;
     private Medico medicoCorrente;
@@ -36,7 +36,7 @@ public class Controller {
         this.prestazioneDao = new PrestazionePostgresDao();
         this.turnoDao = new TurnoPostgresDao();
         this.periodoMalattiaDao = new PeriodoMalattiaPostgresDao();
-        this.specializzazioneDao = new SpecializzazionePostgresDao();
+
     }
 
     // Autenticazione
