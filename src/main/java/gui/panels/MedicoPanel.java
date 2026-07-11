@@ -3,7 +3,6 @@ package gui.panels;
 import controller.Controller;
 import dao.DAOException;
 import model.*;
-import utils.DateFormats;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -12,19 +11,21 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static javax.swing.SwingConstants.LEFT;
 import static utils.DateFormats.*;
 
 public class MedicoPanel extends JPanel {
 
     private transient final Controller controller;
-    private final Medico     medicoCorrente;
+    private transient final Medico medicoCorrente;
 
     public MedicoPanel(Controller controller) {
         this.controller     = controller;
         this.medicoCorrente = controller.getMedicoCorrente();
         setLayout(new BorderLayout());
-        JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
+        JTabbedPane tabs = new JTabbedPane(LEFT);
         tabs.addTab("Agenda Giornaliera",  buildAgendaGiornalieraPanel());
         tabs.addTab("Agenda Settimanale",  buildAgendaSettimanalePanel());
         tabs.addTab("Nuova Prestazione",   buildNuovaPrestazionePanel());
@@ -45,51 +46,17 @@ public class MedicoPanel extends JPanel {
         JTable table = new JTable(tableModel);
         table.setRowHeight(24);
 
-        JTextField dataField = new JTextField(LocalDate.now().format(DATE_FMT), 10);
-        JButton    oggiBtn   = new JButton("Oggi");
-        JButton    cercaBtn  = new JButton("Visualizza");
+        JTextField dataField  = new JTextField(LocalDate.now().format(DATE_FMT), 10);
+        JButton    oggiBtn    = new JButton("Oggi");
+        JButton    cercaBtn   = new JButton("Visualizza");
         JLabel     turniLabel = new JLabel();
 
-        Runnable aggiorna = () -> {
-            try {
-                LocalDate data = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
-                List<Prestazione> lista = controller.getPrestazioniPerGiorno(
-                        medicoCorrente.getIdMedico(), data);
-                tableModel.setRowCount(0);
-                for (Prestazione p : lista) {
-                    String esito = (p.getEsito() == null || p.getEsito().isEmpty()) ? "–"
-                            : (p.getEsito().length() > 40 ? p.getEsito().substring(0, 40) + "…" : p.getEsito());
-                    tableModel.addRow(new Object[]{
-                        p.getDataInizioPrestazione().format(TIME_FMT),
-                        p.getDataFinePrestazione().format(TIME_FMT),
-                        p.getTipologiaPrestazione(),
-                        p.getNumeroPratica(),
-                        esito
-                    });
-                }
-                List<Turno> turniOggi = controller.getAgendaMedico(
-                        medicoCorrente.getIdMedico(), data, data);
-                if (turniOggi.isEmpty()) {
-                    turniLabel.setText("<html><i>Nessun turno in questa data</i></html>");
-                } else {
-                    StringBuilder sb = new StringBuilder("<html><b>Turni:</b> ");
-                    turniOggi.forEach(t -> sb.append(t.getFasciaOraria())
-                            .append(" ").append(t.getOraInizio().format(TIME_FMT))
-                            .append("–").append(t.getOraFine().format(TIME_FMT))
-                            .append("  "));
-                    sb.append("</html>");
-                    turniLabel.setText(sb.toString());
-                }
-            } catch (DateTimeParseException ex) {
-                JOptionPane.showMessageDialog(panel, "Formato data: dd/MM/yyyy",
-                        "Errore", JOptionPane.ERROR_MESSAGE);
-            } catch (DAOException ex) {
-                JOptionPane.showMessageDialog(panel, ex.getMessage(),
-                        "Errore DB", JOptionPane.ERROR_MESSAGE);
-            }
-        };
+        Runnable aggiorna = () -> aggiornaAgenda(panel, tableModel, dataField, turniLabel);
 
-        oggiBtn.addActionListener(e -> { dataField.setText(LocalDate.now().format(DATE_FMT)); aggiorna.run(); });
+        oggiBtn.addActionListener(e -> {
+            dataField.setText(LocalDate.now().format(DATE_FMT));
+            aggiorna.run();
+        });
         cercaBtn.addActionListener(e -> aggiorna.run());
         aggiorna.run();
 
@@ -104,6 +71,64 @@ public class MedicoPanel extends JPanel {
         panel.add(top,                    BorderLayout.NORTH);
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
         return panel;
+    }
+
+    private void aggiornaAgenda(JPanel panel, DefaultTableModel tableModel,
+                                JTextField dataField, JLabel turniLabel) {
+        try {
+            LocalDate data = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
+            popolaPrestazioni(tableModel, data);
+            aggiornaTurniLabel(turniLabel, data);
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(panel, "Formato data: dd/MM/yyyy",
+                    "Errore", JOptionPane.ERROR_MESSAGE);
+        } catch (DAOException ex) {
+            JOptionPane.showMessageDialog(panel, ex.getMessage(),
+                    "Errore DB", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void popolaPrestazioni(DefaultTableModel tableModel, LocalDate data) {
+        List<Prestazione> lista = controller.getPrestazioniPerGiorno(
+                medicoCorrente.getIdMedico(), data);
+        tableModel.setRowCount(0);
+        for (Prestazione p : lista) {
+            tableModel.addRow(new Object[]{
+                    p.getDataInizioPrestazione().format(TIME_FMT),
+                    p.getDataFinePrestazione().format(TIME_FMT),
+                    p.getTipologiaPrestazione(),
+                    p.getNumeroPratica(),
+                    formatEsitoBreve(p.getEsito())
+            });
+        }
+    }
+
+    private String formatEsitoBreve(String esito) {
+        if (esito == null || esito.isEmpty()) return "–";
+        if (esito.length() > 40) return esito.substring(0, 40) + "…";
+        return esito;
+    }
+
+    private void aggiornaTurniLabel(JLabel turniLabel, LocalDate data) {
+        List<Turno> turniOggi = controller.getAgendaMedico(
+                medicoCorrente.getIdMedico(), data, data);
+        if (turniOggi.isEmpty()) {
+            turniLabel.setText("<html><i>Nessun turno in questa data</i></html>");
+            return;
+        }
+        turniLabel.setText(buildTurniHtml(turniOggi));
+    }
+
+    private String buildTurniHtml(List<Turno> turni) {
+        StringBuilder sb = new StringBuilder("<html><b>Turni:</b> ");
+        for (Turno t : turni) {
+            sb.append(t.getFasciaOraria())
+                    .append(" ").append(t.getOraInizio().format(TIME_FMT))
+                    .append("–").append(t.getOraFine().format(TIME_FMT))
+                    .append("  ");
+        }
+        sb.append("</html>");
+        return sb.toString();
     }
 
     // Agenda settimanale
@@ -265,85 +290,95 @@ public class MedicoPanel extends JPanel {
         JTable table = new JTable(tableModel);
         table.setRowHeight(22);
 
-        java.util.concurrent.atomic.AtomicReference<List<Prestazione>> cache =
-                new java.util.concurrent.atomic.AtomicReference<>(null);
-
-        Runnable refreshEsiti = () -> {
-            List<Prestazione> lista = controller.getPrestazioniMedico(medicoCorrente.getIdMedico());
-            cache.set(lista);
-            tableModel.setRowCount(0);
-            for (Prestazione p : lista) {
-                String esito = (p.getEsito() == null || p.getEsito().isEmpty())
-                        ? "(non compilato)" : p.getEsito();
-                tableModel.addRow(new Object[]{
-                    p.getDataInizioPrestazione().toLocalDate().format(DATE_FMT),
-                    p.getDataInizioPrestazione().format(TIME_FMT) + "–"
-                            + p.getDataFinePrestazione().format(TIME_FMT),
-                    p.getTipologiaPrestazione(),
-                    p.getNumeroPratica(),
-                    esito
-                });
-            }
-        };
+        AtomicReference<List<Prestazione>> cache = new AtomicReference<>(null);
+        Runnable refreshEsiti = () -> refreshEsitiTable(tableModel, cache);
         refreshEsiti.run();
-
-        JPanel editPanel = new JPanel(new BorderLayout(5, 5));
-        editPanel.setBorder(BorderFactory.createTitledBorder("Compila / Modifica Esito"));
 
         JTextArea esitoArea = new JTextArea(4, 40);
         esitoArea.setLineWrap(true);
         esitoArea.setWrapStyleWord(true);
-        JButton salvaBtn     = new JButton("Salva Esito");
-        JButton aggiornaBtn  = new JButton("Aggiorna lista");
+        JButton salvaBtn    = new JButton("Salva Esito");
+        JButton aggiornaBtn = new JButton("Aggiorna lista");
         salvaBtn.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         table.getSelectionModel().addListSelectionListener(e -> {
             int row = table.getSelectedRow();
             List<Prestazione> lista = cache.get();
             if (lista == null || row < 0 || row >= lista.size()) return;
-            Prestazione p = lista.get(row);
-            esitoArea.setText(p.getEsito() == null ? "" : p.getEsito());
+            esitoArea.setText(getEsitoOrEmpty(lista.get(row)));
         });
 
-        salvaBtn.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            List<Prestazione> lista = cache.get();
-            if (row < 0 || lista == null) {
-                JOptionPane.showMessageDialog(panel, "Selezionare una prestazione.",
-                        "Avviso", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            String nuovoEsito = esitoArea.getText().trim();
-            if (nuovoEsito.isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "L'esito non può essere vuoto.",
-                        "Avviso", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            try {
-                Prestazione p = lista.get(row);
-                controller.aggiornaEsito(p.getNumeroPratica(), p.getNumeroPrestazione(), nuovoEsito);
-                refreshEsiti.run();
-                JOptionPane.showMessageDialog(panel, "Esito salvato.", "OK", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(panel, ex.getMessage(), "Errore", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
+        salvaBtn.addActionListener(e -> handleSalvaEsito(panel, table, cache, esitoArea, refreshEsiti));
         aggiornaBtn.addActionListener(e -> refreshEsiti.run());
+
+        JPanel editPanel = new JPanel(new BorderLayout(5, 5));
+        editPanel.setBorder(BorderFactory.createTitledBorder("Compila / Modifica Esito"));
+        JPanel bottomEdit = new JPanel(new BorderLayout());
+        bottomEdit.add(new JScrollPane(esitoArea), BorderLayout.CENTER);
+        bottomEdit.add(salvaBtn, BorderLayout.SOUTH);
+        editPanel.add(bottomEdit, BorderLayout.CENTER);
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         btnPanel.add(aggiornaBtn);
 
-        JPanel bottomEdit = new JPanel(new BorderLayout());
-        bottomEdit.add(new JScrollPane(esitoArea), BorderLayout.CENTER);
-        bottomEdit.add(salvaBtn,                   BorderLayout.SOUTH);
-
-        editPanel.add(bottomEdit, BorderLayout.CENTER);
-
-        panel.add(btnPanel,                BorderLayout.NORTH);
-        panel.add(new JScrollPane(table),  BorderLayout.CENTER);
-        panel.add(editPanel,               BorderLayout.SOUTH);
+        panel.add(btnPanel,               BorderLayout.NORTH);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        panel.add(editPanel,              BorderLayout.SOUTH);
         return panel;
+    }
+
+    private void refreshEsitiTable(DefaultTableModel tableModel,
+                                   AtomicReference<List<Prestazione>> cache) {
+        List<Prestazione> lista = controller.getPrestazioniMedico(medicoCorrente.getIdMedico());
+        cache.set(lista);
+        tableModel.setRowCount(0);
+        for (Prestazione p : lista) {
+            tableModel.addRow(new Object[]{
+                    p.getDataInizioPrestazione().toLocalDate().format(DATE_FMT),
+                    p.getDataInizioPrestazione().format(TIME_FMT) + "–"
+                            + p.getDataFinePrestazione().format(TIME_FMT),
+                    p.getTipologiaPrestazione(),
+                    p.getNumeroPratica(),
+                    getEsitoDisplay(p)
+            });
+        }
+    }
+
+    private String getEsitoOrEmpty(Prestazione p) {
+        return p.getEsito() == null ? "" : p.getEsito();
+    }
+
+    private String getEsitoDisplay(Prestazione p) {
+        return (p.getEsito() == null || p.getEsito().isEmpty())
+                ? "(non compilato)" : p.getEsito();
+    }
+
+    private void handleSalvaEsito(JPanel panel, JTable table,
+                                  AtomicReference<List<Prestazione>> cache,
+                                  JTextArea esitoArea, Runnable refreshEsiti) {
+        int row = table.getSelectedRow();
+        List<Prestazione> lista = cache.get();
+        if (row < 0 || lista == null) {
+            showWarning(panel, "Selezionare una prestazione.");
+            return;
+        }
+        String nuovoEsito = esitoArea.getText().trim();
+        if (nuovoEsito.isEmpty()) {
+            showWarning(panel, "L'esito non può essere vuoto.");
+            return;
+        }
+        try {
+            Prestazione p = lista.get(row);
+            controller.aggiornaEsito(p.getNumeroPratica(), p.getNumeroPrestazione(), nuovoEsito);
+            refreshEsiti.run();
+            JOptionPane.showMessageDialog(panel, "Esito salvato.", "OK", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(panel, ex.getMessage(), "Errore", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showWarning(JPanel panel, String msg) {
+        JOptionPane.showMessageDialog(panel, msg, "Avviso", JOptionPane.WARNING_MESSAGE);
     }
 
     // Helper
