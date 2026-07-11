@@ -81,12 +81,6 @@ public class Controller {
         return repartoDao.findAll();
     }
 
-    public Optional<Reparto> getReparto(int idReparto) {
-        return repartoDao.findById(idReparto);
-    }
-
-    // Pazienti
-
     public List<Paziente> getPazienti() {
         return pazienteDao.findAll();
     }
