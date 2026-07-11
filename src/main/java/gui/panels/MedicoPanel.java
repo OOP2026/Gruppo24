@@ -19,7 +19,7 @@ public class MedicoPanel extends JPanel {
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter TIME_FMT     = DateTimeFormatter.ofPattern("HH:mm");
 
-    private final Controller controller;
+    private transient final Controller controller;
     private final Medico     medicoCorrente;
 
     public MedicoPanel(Controller controller) {

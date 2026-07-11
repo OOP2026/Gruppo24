@@ -1,7 +1,6 @@
 package gui.panels;
 
 import controller.Controller;
-import dao.DAOException;
 import model.*;
 
 import javax.swing.*;
@@ -17,10 +16,13 @@ import java.util.Set;
 
 public class AdminPanel extends JPanel {
 
-    private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final String dateFormatPattern = "dd/MM/yyyy";
+    private static final String dateTimeFormatPattern = "dd/MM/yyyy HH:mm";
 
-    private final Controller controller;
+    private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern(dateFormatPattern);
+    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern(dateTimeFormatPattern);
+
+    private transient final Controller controller;
 
     public AdminPanel(Controller controller) {
         this.controller = controller;
@@ -151,8 +153,8 @@ public class AdminPanel extends JPanel {
         JComboBox<Paziente> pazienteCombo = buildPazienteCombo();
         JComboBox<Reparto>  repartoCombo  = buildRepartoCombo();
         JComboBox<Letto>    lettoCombo    = new JComboBox<>();
-        JTextField          inizioField   = new JTextField("dd/MM/yyyy HH:mm", 16);
-        JTextField          fineField     = new JTextField("dd/MM/yyyy HH:mm (facoltativo)", 22);
+        JTextField          inizioField   = new JTextField(dateTimeFormatPattern, 16);
+        JTextField          fineField     = new JTextField(dateTimeFormatPattern + "(facoltativo)", 22);
 
         repartoCombo.addActionListener(e -> {
             lettoCombo.removeAllItems();
@@ -194,7 +196,7 @@ public class AdminPanel extends JPanel {
                 clearFields(praticaField, inizioField, fineField, motivoField);
                 showInfo(panel, "Ricovero registrato.");
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido. Usare: dd/MM/yyyy HH:mm");
+                showError(panel, "Formato data non valido. Usare: " + dateTimeFormatPattern);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -208,7 +210,7 @@ public class AdminPanel extends JPanel {
             }
             String numeroPratica = (String) tableModel.getValueAt(row, 0);
             String dataStr = JOptionPane.showInputDialog(panel,
-                "Data e ora dimissione (dd/MM/yyyy HH:mm):", "Registra Dimissione", JOptionPane.QUESTION_MESSAGE);
+                "Data e ora dimissione " + dateTimeFormatPattern, "Registra Dimissione", JOptionPane.QUESTION_MESSAGE);
             if (dataStr == null) return;
             try {
                 LocalDateTime dataDimissione = LocalDateTime.parse(dataStr.trim(), DATETIME_FMT);
@@ -326,7 +328,7 @@ public class AdminPanel extends JPanel {
                 if (risultati.isEmpty())
                     showInfo(panel, "Nessuna dimissione prevista per " + dataField.getText().trim());
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido (dd/MM/yyyy).");
+                showError(panel, "Formato data non valido " + dateFormatPattern);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -337,7 +339,7 @@ public class AdminPanel extends JPanel {
         cerca.run();
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        top.add(new JLabel("Data dimissione (dd/MM/yyyy):"));
+        top.add(new JLabel("Data dimissione " + dateFormatPattern));
         top.add(dataField);
         top.add(oggiBtn);
         top.add(cercaBtn);
@@ -398,8 +400,8 @@ public class AdminPanel extends JPanel {
 
         JComboBox<Medico> medicoCombo   = buildMedicoCombo();
         JTextField        codiceField   = new JTextField(15);
-        JTextField        inizioField   = new JTextField("dd/MM/yyyy", 10);
-        JTextField        fineField     = new JTextField("dd/MM/yyyy", 10);
+        JTextField        inizioField   = new JTextField(dateFormatPattern, 10);
+        JTextField        fineField     = new JTextField(dateFormatPattern, 10);
 
         addFormRow(formPanel, gbc, 0, "Medico:",              medicoCombo);
         addFormRow(formPanel, gbc, 1, "Codice Certificato:",  codiceField);
@@ -448,7 +450,7 @@ public class AdminPanel extends JPanel {
                 showInfo(panel, "Periodo di malattia registrato per Dr. "
                         + medico.getNome() + " " + medico.getCognome() + ".");
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido (dd/MM/yyyy).");
+                showError(panel, "Formato data non valido " + dateFormatPattern);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }

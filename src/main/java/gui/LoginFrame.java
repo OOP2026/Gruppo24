@@ -8,7 +8,7 @@ import java.awt.*;
 
 public class LoginFrame extends JFrame {
 
-    private final Controller controller;
+    private transient final Controller controller;
 
     private JPanel         rootPanel;
     private JLabel         titleLabel;
@@ -80,7 +80,7 @@ public class LoginFrame extends JFrame {
 
     private void configFrame() {
         setTitle("Login – Gestione Ospedale");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(false);
         pack();
         setLocationRelativeTo(null);

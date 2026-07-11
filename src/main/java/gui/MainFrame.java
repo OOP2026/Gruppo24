@@ -9,7 +9,7 @@ import java.awt.*;
 
 public class MainFrame extends JFrame {
 
-    private final Controller controller;
+    private transient final Controller controller;
 
     public MainFrame(Controller controller) {
         this.controller = controller;
@@ -68,7 +68,7 @@ public class MainFrame extends JFrame {
 
     private void configFrame() {
         setTitle("Gestione Ospedale");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1100, 720);
         setLocationRelativeTo(null);
     }
