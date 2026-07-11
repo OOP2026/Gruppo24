@@ -10,12 +10,8 @@ public class LoginFrame extends JFrame {
 
     private final transient Controller controller;
 
-    private JLabel titleLabel;
-    private JLabel loginLabel;
-    private JLabel passwordLabel;
     private JTextField loginField;
     private JPasswordField passwordField;
-    private JButton loginButton;
     private JLabel statusLabel;
 
     public LoginFrame(Controller controller) {
@@ -28,7 +24,7 @@ public class LoginFrame extends JFrame {
         JPanel rootPanel = new JPanel(new BorderLayout(0, 10));
         rootPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 20, 40));
 
-        titleLabel = new JLabel("Accesso Utente Ospedale", SwingConstants.CENTER);
+        JLabel titleLabel = new JLabel("Accesso Utente Ospedale", SwingConstants.CENTER);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
         rootPanel.add(titleLabel, BorderLayout.NORTH);
@@ -38,7 +34,7 @@ public class LoginFrame extends JFrame {
         gbc.insets = new Insets(6, 6, 6, 6);
         gbc.fill   = GridBagConstraints.HORIZONTAL;
 
-        loginLabel = new JLabel("Login:");
+        JLabel loginLabel = new JLabel("Login:");
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
         formPanel.add(loginLabel, gbc);
 
@@ -46,7 +42,7 @@ public class LoginFrame extends JFrame {
         gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1.0;
         formPanel.add(loginField, gbc);
 
-        passwordLabel = new JLabel("Password:");
+        JLabel passwordLabel = new JLabel("Password:");
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
         formPanel.add(passwordLabel, gbc);
 
@@ -58,7 +54,7 @@ public class LoginFrame extends JFrame {
 
         JPanel bottomPanel = new JPanel(new BorderLayout(0, 4));
 
-        loginButton = new JButton("Accedi");
+        JButton loginButton = new JButton("Accedi");
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 13));
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         btnPanel.add(loginButton);

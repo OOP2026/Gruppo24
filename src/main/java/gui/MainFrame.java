@@ -34,18 +34,7 @@ public class MainFrame extends JFrame {
         topBar.setBackground(new Color(41, 128, 185));
         topBar.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
 
-        String nomeUtente;
-        if (controller.isMedico()) {
-            nomeUtente = controller.getMedicoCorrente().getNome()
-                    + " " + controller.getMedicoCorrente().getCognome()
-                    + " – " + controller.getNomeRepartoMedicoCorrente();
-        } else {
-            nomeUtente = "Amministratore: " + controller.getAmministratoreCorrente().getLogin();
-        }
-
-        JLabel userLabel = new JLabel(nomeUtente);
-        userLabel.setForeground(Color.WHITE);
-        userLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        JLabel userLabel = getJLabel();
         topBar.add(userLabel, BorderLayout.WEST);
 
         JLabel titleLabel = new JLabel("Gestione Ospedale", SwingConstants.CENTER);
@@ -58,6 +47,22 @@ public class MainFrame extends JFrame {
         topBar.add(logoutBtn, BorderLayout.EAST);
 
         return topBar;
+    }
+
+    private JLabel getJLabel() {
+        String nomeUtente;
+        if (controller.isMedico()) {
+            nomeUtente = controller.getMedicoCorrente().getNome()
+                    + " " + controller.getMedicoCorrente().getCognome()
+                    + " – " + controller.getNomeRepartoMedicoCorrente();
+        } else {
+            nomeUtente = "Amministratore: " + controller.getAmministratoreCorrente().getLogin();
+        }
+
+        JLabel userLabel = new JLabel(nomeUtente);
+        userLabel.setForeground(Color.WHITE);
+        userLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        return userLabel;
     }
 
     private void handleLogout() {

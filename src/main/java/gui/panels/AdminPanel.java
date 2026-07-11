@@ -254,23 +254,23 @@ public class AdminPanel extends JPanel {
                 showError(panel, ex.getMessage());
             }
         }
-    }
 
-    private LocalDateTime parseFineOptional(String fineStr) {
-        if (fineStr.isEmpty() || fineStr.startsWith("dd/MM")) return null;
-        return LocalDateTime.parse(fineStr, DATETIME_FMT);
-    }
+        private LocalDateTime parseFineOptional(String fineStr) {
+            if (fineStr.isEmpty() || fineStr.startsWith("dd/MM")) return null;
+            return LocalDateTime.parse(fineStr, DATETIME_FMT);
+        }
 
-    private void refreshRicoveri(DefaultTableModel model) {
-        model.setRowCount(0);
-        for (Ricovero r : controller.getRicoveri()) {
-            model.addRow(new Object[]{
-                r.getNumeroPratica(),
-                r.getCodiceUnivocoLetto(),
-                r.getDataInizioRicovero().format(DATETIME_FMT),
-                r.getDataDimissioneRicovero() != null ? r.getDataDimissioneRicovero().format(DATETIME_FMT) : "–",
-                r.isInCorso() ? "Sì" : "No"
-            });
+        private void refreshRicoveri(DefaultTableModel model) {
+            model.setRowCount(0);
+            for (Ricovero r : controller.getRicoveri()) {
+                model.addRow(new Object[]{
+                        r.getNumeroPratica(),
+                        r.getCodiceUnivocoLetto(),
+                        r.getDataInizioRicovero().format(DATETIME_FMT),
+                        r.getDataDimissioneRicovero() != null ? r.getDataDimissioneRicovero().format(DATETIME_FMT) : "–",
+                        r.isInCorso() ? "Sì" : "No"
+                });
+            }
         }
     }
 

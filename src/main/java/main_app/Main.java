@@ -1,3 +1,5 @@
+package main_app;
+
 import controller.Controller;
 import gui.LoginFrame;
 

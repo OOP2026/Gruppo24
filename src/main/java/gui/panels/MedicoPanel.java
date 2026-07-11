@@ -48,9 +48,9 @@ public class MedicoPanel extends JPanel {
         table.setRowHeight(24);
 
         JTextField dataField  = new JTextField(LocalDate.now().format(DATE_FMT), 10);
-        JButton    oggiBtn    = new JButton("Oggi");
-        JButton    cercaBtn   = new JButton("Visualizza");
-        JLabel     turniLabel = new JLabel();
+        JButton oggiBtn = new JButton("Oggi");
+        JButton cercaBtn = new JButton("Visualizza");
+        JLabel turniLabel = new JLabel();
 
         Runnable aggiorna = () -> aggiornaAgenda(panel, tableModel, dataField, turniLabel);
 
@@ -139,7 +139,7 @@ public class MedicoPanel extends JPanel {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         LocalDate oggi   = LocalDate.now();
-        LocalDate lunedi = oggi.minusDays(oggi.getDayOfWeek().getValue() - 1);
+        LocalDate lunedi = oggi.minusDays((long) oggi.getDayOfWeek().getValue() - 1);
 
         JLabel  settLabel = new JLabel(formatSettimana(lunedi));
         JButton prevBtn   = new JButton("◀ Prec");
@@ -164,7 +164,7 @@ public class MedicoPanel extends JPanel {
             for (int i = 0; i < 7; i++) perGiorno.put(inizio.plusDays(i), new StringBuilder());
             for (Turno t : turni) {
                 StringBuilder sb = perGiorno.getOrDefault(t.getData(), new StringBuilder());
-                if (sb.length() > 0) sb.append("<br>");
+                if (!sb.isEmpty()) sb.append("<br>");
                 sb.append("<b>").append(t.getFasciaOraria()).append("</b> ")
                   .append(t.getOraInizio().format(TIME_FMT))
                   .append("–").append(t.getOraFine().format(TIME_FMT));
@@ -173,7 +173,7 @@ public class MedicoPanel extends JPanel {
             Object[] row = new Object[7];
             int idx = 0;
             for (Map.Entry<LocalDate, StringBuilder> d : perGiorno.entrySet()) {
-                String content = perGiorno.get(d).toString();
+                String content = d.getValue().toString();
                 row[idx++] = content.isEmpty()
                         ? "<html><font color='gray'><i>–</i></font></html>"
                         : "<html>" + content + "</html>";
