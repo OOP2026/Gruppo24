@@ -15,13 +15,12 @@ public class Controller {
     private final MedicoDAO medicoDao;
     private final PazienteDAO pazienteDao;
     private final RepartoDAO repartoDao;
-    private final StanzaDAO stanzaDao;
     private final LettoDAO lettoDao;
     private final RicoveroDAO ricoveroDao;
     private final PrestazioneDAO prestazioneDao;
     private final TurnoDAO turnoDao;
     private final PeriodoMalattiaDAO periodoMalattiaDao;
-    private final SpecializzazioneDAO specializzazioneDao;
+
 
     private Amministratore amministratoreCorrente;
     private Medico medicoCorrente;
@@ -32,13 +31,12 @@ public class Controller {
         this.medicoDao = new MedicoPostgresDao();
         this.pazienteDao = new PazientePostgresDao();
         this.repartoDao = new RepartoPostgresDao();
-        this.stanzaDao = new StanzaPostgresDao();
         this.lettoDao = new LettoPostgresDao();
         this.ricoveroDao = new RicoveroPostgresDao();
         this.prestazioneDao = new PrestazionePostgresDao();
         this.turnoDao = new TurnoPostgresDao();
         this.periodoMalattiaDao = new PeriodoMalattiaPostgresDao();
-        this.specializzazioneDao = new SpecializzazionePostgresDao();
+
     }
 
     // Autenticazione
