@@ -29,7 +29,7 @@ public class PrestazionePostgresDao implements PrestazioneDAO {
 
     @Override
     public Optional<Prestazione> findById(String numeroPratica, int numeroPrestazione) {
-        String sql = "SELECT * FROM Prestazione WHERE NumeroPratica = ? AND NumeroPrestazione = ?";
+        String sql = "SELECT numeropratica,numeroprestazione,datainizioprestazione,datafineprestazione,esito,tipologiaprestazione,idmedico FROM Prestazione WHERE NumeroPratica = ? AND NumeroPrestazione = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, numeroPratica);
@@ -44,7 +44,7 @@ public class PrestazionePostgresDao implements PrestazioneDAO {
 
     @Override
     public List<Prestazione> findAll() {
-        String sql = "SELECT * FROM Prestazione ORDER BY DataInizioPrestazione DESC";
+        String sql = "SELECT numeropratica,numeroprestazione,datainizioprestazione,datafineprestazione,esito,tipologiaprestazione,idmedico FROM Prestazione ORDER BY DataInizioPrestazione DESC";
         List<Prestazione> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -58,7 +58,7 @@ public class PrestazionePostgresDao implements PrestazioneDAO {
 
     @Override
     public List<Prestazione> findByMedico(int idMedico) {
-        String sql = "SELECT * FROM Prestazione WHERE IdMedico = ? ORDER BY DataInizioPrestazione DESC";
+        String sql = "SELECT numeropratica,numeroprestazione,datainizioprestazione,datafineprestazione,esito,tipologiaprestazione,idmedico FROM Prestazione WHERE IdMedico = ? ORDER BY DataInizioPrestazione DESC";
         List<Prestazione> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -74,7 +74,7 @@ public class PrestazionePostgresDao implements PrestazioneDAO {
 
     @Override
     public List<Prestazione> findByMedicoAndDate(int idMedico, LocalDate data) {
-        String sql = "SELECT * FROM Prestazione WHERE IdMedico = ? AND DataInizioPrestazione::date = ? ORDER BY DataInizioPrestazione";
+        String sql = "SELECT numeropratica,numeroprestazione,datainizioprestazione,datafineprestazione,esito,tipologiaprestazione,idmedico FROM Prestazione WHERE IdMedico = ? AND DataInizioPrestazione::date = ? ORDER BY DataInizioPrestazione";
         List<Prestazione> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

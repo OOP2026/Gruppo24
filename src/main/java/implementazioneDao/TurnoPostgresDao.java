@@ -25,7 +25,7 @@ public class TurnoPostgresDao implements TurnoDAO {
 
     @Override
     public Optional<Turno> findById(LocalDate data, FasciaOraria fasciaOraria) {
-        String sql = "SELECT * FROM Turno WHERE Data = ? AND FasciaOraria = ?::fascia_oraria";
+        String sql = "SELECT data,fasciaoraria,orainizio,orafine FROM Turno WHERE Data = ? AND FasciaOraria = ?::fascia_oraria";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(data));
@@ -40,7 +40,7 @@ public class TurnoPostgresDao implements TurnoDAO {
 
     @Override
     public List<Turno> findAll() {
-        String sql = "SELECT * FROM Turno ORDER BY Data, OraInizio";
+        String sql = "SELECT data,fasciaoraria,orainizio,orafine FROM Turno ORDER BY Data, OraInizio";
         List<Turno> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -54,7 +54,7 @@ public class TurnoPostgresDao implements TurnoDAO {
 
     @Override
     public List<Turno> trovaAgendaMedico(int idMedico, LocalDate inizio, LocalDate fine) {
-        String sql = "SELECT Data, FasciaOraria, OraInizio, OraFine FROM agenda_medico(?, ?, ?)";
+        String sql = "SELECT data, fasciaoraria, orainizio, orafine FROM agenda_medico(?, ?, ?)";
         List<Turno> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
