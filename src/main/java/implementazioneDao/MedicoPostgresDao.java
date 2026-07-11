@@ -26,7 +26,7 @@ public class MedicoPostgresDao implements MedicoDAO {
 
     @Override
     public Optional<Medico> findById(int id) {
-        String sql = "SELECT * FROM Medico WHERE IdMedico = ?";
+        String sql = "SELECT idmedico, login, password, matricola, nome, cognome, idreparto FROM Medico WHERE IdMedico = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -40,7 +40,7 @@ public class MedicoPostgresDao implements MedicoDAO {
 
     @Override
     public List<Medico> findAll() {
-        String sql = "SELECT * FROM Medico ORDER BY Cognome, Nome";
+        String sql = "SELECT idmedico, login, password, matricola, nome, cognome, idreparto FROM Medico ORDER BY Cognome, Nome";
         List<Medico> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -104,7 +104,7 @@ public class MedicoPostgresDao implements MedicoDAO {
 
     @Override
     public Optional<Medico> autentica(String login, String password) {
-        String sql = "SELECT * FROM Medico WHERE Login = ? AND Password = ?";
+        String sql = "SELECT idmedico, login, password, matricola, nome, cognome, idreparto FROM Medico WHERE Login = ? AND Password = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, login);
@@ -119,7 +119,7 @@ public class MedicoPostgresDao implements MedicoDAO {
 
     @Override
     public List<Medico> findByReparto(int idReparto) {
-        String sql = "SELECT * FROM Medico WHERE IdReparto = ? ORDER BY Cognome, Nome";
+        String sql = "SELECT idmedico, login, password, matricola, nome, cognome, idreparto FROM Medico WHERE IdReparto = ? ORDER BY Cognome, Nome";
         List<Medico> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
