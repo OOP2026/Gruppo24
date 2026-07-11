@@ -22,7 +22,7 @@ public class LettoPostgresDao implements LettoDAO {
 
     @Override
     public Optional<Letto> findById(String codiceUnivoco) {
-        String sql = "SELECT * FROM Letto WHERE CodiceUnivoco = ?";
+        String sql = "SELECT CodiceUnivoco, IdReparto, NumeroStanza FROM Letto WHERE CodiceUnivoco = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, codiceUnivoco);
@@ -36,7 +36,7 @@ public class LettoPostgresDao implements LettoDAO {
 
     @Override
     public List<Letto> findAll() {
-        String sql = "SELECT * FROM Letto ORDER BY CodiceUnivoco";
+        String sql = "SELECT CodiceUnivoco, IdReparto, NumeroStanza FROM Letto ORDER BY CodiceUnivoco";
         List<Letto> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -50,7 +50,7 @@ public class LettoPostgresDao implements LettoDAO {
 
     @Override
     public List<Letto> findByReparto(int idReparto) {
-        String sql = "SELECT * FROM Letto WHERE IdReparto = ? ORDER BY CodiceUnivoco";
+        String sql = "SELECT CodiceUnivoco, IdReparto, NumeroStanza FROM Letto WHERE IdReparto = ? ORDER BY CodiceUnivoco";
         List<Letto> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -64,21 +64,6 @@ public class LettoPostgresDao implements LettoDAO {
         return result;
     }
 
-    @Override
-    public List<Letto> trovaLettiDisponibiliInReparto(int idReparto) {
-        String sql = "SELECT CodiceUnivoco, IdReparto, NumeroStanza FROM LettiDisponibili WHERE IdReparto = ? ORDER BY CodiceUnivoco";
-        List<Letto> result = new ArrayList<>();
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, idReparto);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new DAOException("Errore trovaLettiDisponibili: " + e.getMessage(), e);
-        }
-        return result;
-    }
 
     @Override
     public List<Letto> trovaLettiOccupati() {

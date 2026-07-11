@@ -29,21 +29,6 @@ public class SpecializzazionePostgresDao implements SpecializzazioneDAO {
         return result;
     }
 
-    @Override
-    public List<Specializzazione> findByMedico(int idMedico) {
-        String sql = "SELECT NomeSpecializzazione FROM Specializzazione_Medico WHERE IdMedico = ? ORDER BY NomeSpecializzazione";
-        List<Specializzazione> result = new ArrayList<>();
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, idMedico);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(new Specializzazione(rs.getString("NomeSpecializzazione")));
-            }
-        } catch (SQLException e) {
-            throw new DAOException("Errore findByMedico Specializzazione: " + e.getMessage(), e);
-        }
-        return result;
-    }
 
     @Override
     public void insert(Specializzazione s) {
@@ -66,32 +51,6 @@ public class SpecializzazionePostgresDao implements SpecializzazioneDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new DAOException("Errore delete Specializzazione: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public void aggiungiSpecializzazioneMedico(int idMedico, String nome) {
-        String sql = "INSERT INTO Specializzazione_Medico (IdMedico, NomeSpecializzazione) VALUES (?, ?)";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, idMedico);
-            ps.setString(2, nome);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new DAOException("Errore aggiungiSpecializzazioneMedico: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public void rimuoviSpecializzazioneMedico(int idMedico, String nome) {
-        String sql = "DELETE FROM Specializzazione_Medico WHERE IdMedico = ? AND NomeSpecializzazione = ?";
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, idMedico);
-            ps.setString(2, nome);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new DAOException("Errore rimuoviSpecializzazioneMedico: " + e.getMessage(), e);
         }
     }
 }

@@ -55,22 +55,6 @@ public class RicoveroPostgresDao implements RicoveroDAO {
     }
 
     @Override
-    public List<Ricovero> findByPaziente(int idPaziente) {
-        String sql = "SELECT * FROM Ricovero WHERE IdPaziente = ? ORDER BY DataInizioRicovero DESC";
-        List<Ricovero> result = new ArrayList<>();
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, idPaziente);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new DAOException("Errore findByPaziente Ricovero: " + e.getMessage(), e);
-        }
-        return result;
-    }
-
-    @Override
     public List<Ricovero> findInCorso() {
         String sql = "SELECT * FROM Ricovero WHERE DataDimissioneRicovero IS NULL OR DataDimissioneRicovero > NOW() ORDER BY DataInizioRicovero DESC";
         List<Ricovero> result = new ArrayList<>();

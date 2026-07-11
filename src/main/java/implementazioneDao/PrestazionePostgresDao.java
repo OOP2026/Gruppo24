@@ -57,22 +57,6 @@ public class PrestazionePostgresDao implements PrestazioneDAO {
     }
 
     @Override
-    public List<Prestazione> findByRicovero(String numeroPratica) {
-        String sql = "SELECT * FROM Prestazione WHERE NumeroPratica = ? ORDER BY NumeroPrestazione";
-        List<Prestazione> result = new ArrayList<>();
-        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, numeroPratica);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new DAOException("Errore findByRicovero Prestazione: " + e.getMessage(), e);
-        }
-        return result;
-    }
-
-    @Override
     public List<Prestazione> findByMedico(int idMedico) {
         String sql = "SELECT * FROM Prestazione WHERE IdMedico = ? ORDER BY DataInizioPrestazione DESC";
         List<Prestazione> result = new ArrayList<>();
