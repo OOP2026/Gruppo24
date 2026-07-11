@@ -8,7 +8,7 @@ import java.awt.*;
 
 public class LoginFrame extends JFrame {
 
-    private transient final Controller controller;
+    private final transient Controller controller;
 
     private JLabel titleLabel;
     private JLabel loginLabel;
