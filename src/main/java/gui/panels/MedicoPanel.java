@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static javax.swing.SwingConstants.LEFT;
@@ -171,7 +172,7 @@ public class MedicoPanel extends JPanel {
 
             Object[] row = new Object[7];
             int idx = 0;
-            for (LocalDate d : perGiorno.keySet()) {
+            for (Map.Entry<LocalDate, StringBuilder> d : perGiorno.entrySet()) {
                 String content = perGiorno.get(d).toString();
                 row[idx++] = content.isEmpty()
                         ? "<html><font color='gray'><i>–</i></font></html>"

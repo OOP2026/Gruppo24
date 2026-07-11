@@ -356,10 +356,10 @@ public class AdminPanel extends JPanel {
                 tableModel.setRowCount(0);
                 for (PazienteInDimissione pid : risultati) {
                     tableModel.addRow(new Object[]{
-                        pid.getNome() + " " + pid.getCognome(),
-                        pid.getCodiceFiscale(),
-                        pid.getCodiceUnivocoLetto(),
-                        pid.getDataDimissione().format(DATETIME_FMT)
+                        pid.nome() + " " + pid.cognome(),
+                        pid.codiceFiscale(),
+                        pid.codiceUnivocoLetto(),
+                        pid.dataDimissione().format(DATETIME_FMT)
                     });
                 }
                 if (risultati.isEmpty())
@@ -473,10 +473,10 @@ public class AdminPanel extends JPanel {
                 DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
                 for (Sostituto s : sostituti) {
                     sostitutoModel.addRow(new Object[]{
-                        s.getData().format(DATE_FMT),
-                        s.getFasciaOraria(),
-                        s.getOraInizio().format(timeFmt) + "–" + s.getOraFine().format(timeFmt),
-                        "Dr. " + s.getNomeSostituto() + " " + s.getCognomeSostituto()
+                        s.data().format(DATE_FMT),
+                        s.fasciaOraria(),
+                        s.oraInizio().format(timeFmt) + "–" + s.oraFine().format(timeFmt),
+                        "Dr. " + s.nomeSostituto() + " " + s.cognomeSostituto()
                     });
                 }
                 if (sostituti.isEmpty())
