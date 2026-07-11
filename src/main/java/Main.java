@@ -8,6 +8,9 @@ public class Main {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {}
+        } catch (Exception e) {
+            System.err.println("Impossibile impostare il Look and Feel di sistema: " + e.getMessage());
+        }
 
         SwingUtilities.invokeLater(() -> {
             Controller controller = new Controller();

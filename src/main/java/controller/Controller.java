@@ -15,7 +15,6 @@ public class Controller {
     private final MedicoDAO medicoDao;
     private final PazienteDAO pazienteDao;
     private final RepartoDAO repartoDao;
-    private final StanzaDAO stanzaDao;
     private final LettoDAO lettoDao;
     private final RicoveroDAO ricoveroDao;
     private final PrestazioneDAO prestazioneDao;
@@ -32,7 +31,6 @@ public class Controller {
         this.medicoDao = new MedicoPostgresDao();
         this.pazienteDao = new PazientePostgresDao();
         this.repartoDao = new RepartoPostgresDao();
-        this.stanzaDao = new StanzaPostgresDao();
         this.lettoDao = new LettoPostgresDao();
         this.ricoveroDao = new RicoveroPostgresDao();
         this.prestazioneDao = new PrestazionePostgresDao();
