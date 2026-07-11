@@ -17,7 +17,7 @@ public class SpecializzazionePostgresDao implements SpecializzazioneDAO {
 
     @Override
     public List<Specializzazione> findAll() {
-        String sql = "SELECT * FROM Specializzazione ORDER BY NomeSpecializzazione";
+        String sql = "SELECT nomespecializzazione FROM Specializzazione ORDER BY NomeSpecializzazione";
         List<Specializzazione> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
