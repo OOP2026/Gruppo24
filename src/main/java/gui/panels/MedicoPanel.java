@@ -3,21 +3,19 @@ package gui.panels;
 import controller.Controller;
 import dao.DAOException;
 import model.*;
+import utils.DateFormats;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
-public class MedicoPanel extends JPanel {
+import static utils.DateFormats.*;
 
-    private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final DateTimeFormatter TIME_FMT     = DateTimeFormatter.ofPattern("HH:mm");
+public class MedicoPanel extends JPanel {
 
     private transient final Controller controller;
     private final Medico     medicoCorrente;

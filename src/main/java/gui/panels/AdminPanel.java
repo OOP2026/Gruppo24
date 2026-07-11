@@ -15,14 +15,15 @@ import java.util.List;
 import java.util.Set;
 
 import static javax.swing.SwingConstants.LEFT;
+import static utils.DateFormats.DATE_FORMAT_PATTERN;
+import static utils.DateFormats.DATE_TIME_FORMAT_PATTERN;
 
 public class AdminPanel extends JPanel {
 
-    private static final String DATE_FORMAT_PATTERN = "dd/MM/yyyy";
-    private static final String DATE_TIME_FORMAT_PATTERN = "dd/MM/yyyy HH:mm";
-
     private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN);
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT_PATTERN);
+
+    private static final String FONT_SANS_SERIF = "SansSerif";
 
     private transient final Controller controller;
 
@@ -289,7 +290,7 @@ public class AdminPanel extends JPanel {
                 JLabel badge = new JLabel(l.getCodiceUnivoco(), SwingConstants.CENTER);
                 badge.setOpaque(true);
                 badge.setPreferredSize(new Dimension(130, 50));
-                badge.setFont(new Font("SansSerif", Font.BOLD, 12));
+                badge.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
                 badge.setBackground(isOccupato ? Color.RED : new Color(39, 174, 96));
                 badge.setForeground(Color.WHITE);
                 badge.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
@@ -314,7 +315,7 @@ public class AdminPanel extends JPanel {
         top.add(repartoCombo);
         top.add(refreshBtn);
         JLabel legenda = new JLabel("  ■ Rosso = Occupato   ■ Verde = Disponibile");
-        legenda.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        legenda.setFont(new Font(FONT_SANS_SERIF, Font.PLAIN, 11));
         top.add(legenda);
 
         panel.add(top,    BorderLayout.NORTH);
@@ -435,7 +436,7 @@ public class AdminPanel extends JPanel {
         addFormRow(formPanel, gbc, 3, "Fine malattia:",       fineField);
 
         JButton registraBtn = new JButton("Registra Malattia e Cerca Sostituti");
-        registraBtn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        registraBtn.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         formPanel.add(registraBtn, gbc);
 
@@ -445,7 +446,7 @@ public class AdminPanel extends JPanel {
         };
         JTable sostitutoTable = new JTable(sostitutoModel);
         JLabel sostitutoHeader = new JLabel("Sostituti disponibili per i turni scoperti:", LEFT);
-        sostitutoHeader.setFont(new Font("SansSerif", Font.BOLD, 12));
+        sostitutoHeader.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
 
         registraBtn.addActionListener(e -> {
             Medico medico = (Medico) medicoCombo.getSelectedItem();
