@@ -6,7 +6,7 @@ public class Stanza {
     private String numeroStanza;
     private int capienzaMax;
 
-    public Stanza() {}
+
 
     public Stanza(int idReparto, String numeroStanza, int capienzaMax) {
         this.idReparto = idReparto;
@@ -18,8 +18,8 @@ public class Stanza {
     public void setIdReparto(int idReparto) { this.idReparto = idReparto; }
 
     public String getNumeroStanza() { return numeroStanza; }
-    public void setNumeroStanza(String numeroStanza) { this.numeroStanza = numeroStanza; }
+
 
     public int getCapienzaMax() { return capienzaMax; }
-    public void setCapienzaMax(int capienzaMax) { this.capienzaMax = capienzaMax; }
+
 }

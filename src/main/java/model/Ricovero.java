@@ -11,7 +11,7 @@ public class Ricovero {
     private int idPaziente;
     private String codiceUnivocoLetto;
 
-    public Ricovero() {}
+
 
     public Ricovero(String numeroPratica, LocalDateTime dataInizioRicovero,
                     LocalDateTime dataDimissioneRicovero, String motivoRicovero,
@@ -29,22 +29,19 @@ public class Ricovero {
     }
 
     public String getNumeroPratica() { return numeroPratica; }
-    public void setNumeroPratica(String numeroPratica) { this.numeroPratica = numeroPratica; }
 
     public LocalDateTime getDataInizioRicovero() { return dataInizioRicovero; }
-    public void setDataInizioRicovero(LocalDateTime dataInizioRicovero) { this.dataInizioRicovero = dataInizioRicovero; }
+
 
     public LocalDateTime getDataDimissioneRicovero() { return dataDimissioneRicovero; }
     public void setDataDimissioneRicovero(LocalDateTime dataDimissioneRicovero) { this.dataDimissioneRicovero = dataDimissioneRicovero; }
 
     public String getMotivoRicovero() { return motivoRicovero; }
-    public void setMotivoRicovero(String motivoRicovero) { this.motivoRicovero = motivoRicovero; }
 
     public int getIdPaziente() { return idPaziente; }
-    public void setIdPaziente(int idPaziente) { this.idPaziente = idPaziente; }
 
     public String getCodiceUnivocoLetto() { return codiceUnivocoLetto; }
-    public void setCodiceUnivocoLetto(String codiceUnivocoLetto) { this.codiceUnivocoLetto = codiceUnivocoLetto; }
+
 
     @Override
     public String toString() {

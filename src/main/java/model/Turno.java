@@ -10,7 +10,7 @@ public class Turno {
     private LocalTime oraInizio;
     private LocalTime oraFine;
 
-    public Turno() {}
+
 
     public Turno(LocalDate data, FasciaOraria fasciaOraria,
                  LocalTime oraInizio, LocalTime oraFine) {
@@ -24,11 +24,11 @@ public class Turno {
     public void setData(LocalDate data) { this.data = data; }
 
     public FasciaOraria getFasciaOraria() { return fasciaOraria; }
-    public void setFasciaOraria(FasciaOraria fasciaOraria) { this.fasciaOraria = fasciaOraria; }
+
 
     public LocalTime getOraInizio() { return oraInizio; }
-    public void setOraInizio(LocalTime oraInizio) { this.oraInizio = oraInizio; }
+
 
     public LocalTime getOraFine() { return oraFine; }
-    public void setOraFine(LocalTime oraFine) { this.oraFine = oraFine; }
+
 }

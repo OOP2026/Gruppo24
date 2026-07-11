@@ -20,13 +20,12 @@ public class Reparto {
     public void setIdReparto(int idReparto) { this.idReparto = idReparto; }
 
     public String getNomeReparto() { return nomeReparto; }
-    public void setNomeReparto(String nomeReparto) { this.nomeReparto = nomeReparto; }
+
 
     public int getPiano() { return piano; }
-    public void setPiano(int piano) { this.piano = piano; }
 
     public String getAla() { return ala; }
-    public void setAla(String ala) { this.ala = ala; }
+
 
     @Override
     public String toString() {

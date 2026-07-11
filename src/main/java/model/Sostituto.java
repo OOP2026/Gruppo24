@@ -13,7 +13,7 @@ public class Sostituto {
     private String nomeSostituto;
     private String cognomeSostituto;
 
-    public Sostituto() {}
+
 
     public Sostituto(LocalDate data, FasciaOraria fasciaOraria,
                      LocalTime oraInizio, LocalTime oraFine,
@@ -31,20 +31,18 @@ public class Sostituto {
     public void setData(LocalDate data) { this.data = data; }
 
     public FasciaOraria getFasciaOraria() { return fasciaOraria; }
-    public void setFasciaOraria(FasciaOraria fasciaOraria) { this.fasciaOraria = fasciaOraria; }
+
 
     public LocalTime getOraInizio() { return oraInizio; }
-    public void setOraInizio(LocalTime oraInizio) { this.oraInizio = oraInizio; }
+
 
     public LocalTime getOraFine() { return oraFine; }
-    public void setOraFine(LocalTime oraFine) { this.oraFine = oraFine; }
 
-    public int getIdSostituto() { return idSostituto; }
-    public void setIdSostituto(int idSostituto) { this.idSostituto = idSostituto; }
+
+
 
     public String getNomeSostituto() { return nomeSostituto; }
-    public void setNomeSostituto(String nomeSostituto) { this.nomeSostituto = nomeSostituto; }
 
     public String getCognomeSostituto() { return cognomeSostituto; }
-    public void setCognomeSostituto(String cognomeSostituto) { this.cognomeSostituto = cognomeSostituto; }
+
 }
