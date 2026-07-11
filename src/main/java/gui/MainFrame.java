@@ -9,7 +9,7 @@ import java.awt.*;
 
 public class MainFrame extends JFrame {
 
-    private transient final Controller controller;
+    private final transient Controller controller;
 
     public MainFrame(Controller controller) {
         this.controller = controller;
