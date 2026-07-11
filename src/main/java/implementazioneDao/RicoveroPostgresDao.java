@@ -28,7 +28,7 @@ public class RicoveroPostgresDao implements RicoveroDAO {
 
     @Override
     public Optional<Ricovero> findById(String numeroPratica) {
-        String sql = "SELECT * FROM Ricovero WHERE NumeroPratica = ?";
+        String sql = "SELECT numeropratica, datainizioricovero, datadimissionericovero, motivoricovero, idpaziente, codiceunivocoletto FROM Ricovero WHERE NumeroPratica = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, numeroPratica);
@@ -42,7 +42,7 @@ public class RicoveroPostgresDao implements RicoveroDAO {
 
     @Override
     public List<Ricovero> findAll() {
-        String sql = "SELECT * FROM Ricovero ORDER BY DataInizioRicovero DESC";
+        String sql = "SELECT numeropratica, datainizioricovero, datadimissionericovero, motivoricovero, idpaziente, codiceunivocoletto  FROM Ricovero ORDER BY DataInizioRicovero DESC";
         List<Ricovero> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -56,7 +56,7 @@ public class RicoveroPostgresDao implements RicoveroDAO {
 
     @Override
     public List<Ricovero> findInCorso() {
-        String sql = "SELECT * FROM Ricovero WHERE DataDimissioneRicovero IS NULL OR DataDimissioneRicovero > NOW() ORDER BY DataInizioRicovero DESC";
+        String sql = "SELECT numeropratica, datainizioricovero, datadimissionericovero, motivoricovero, idpaziente, codiceunivocoletto  FROM Ricovero WHERE DataDimissioneRicovero IS NULL OR DataDimissioneRicovero > NOW() ORDER BY DataInizioRicovero DESC";
         List<Ricovero> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
