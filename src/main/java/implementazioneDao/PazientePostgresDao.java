@@ -24,7 +24,7 @@ public class PazientePostgresDao implements PazienteDAO {
 
     @Override
     public Optional<Paziente> findById(int id) {
-        String sql = "SELECT * FROM Paziente WHERE IdPaziente = ?";
+        String sql = "SELECT idpaziente,codicefiscale,nome,cognome,datanascita FROM Paziente WHERE IdPaziente = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -38,7 +38,7 @@ public class PazientePostgresDao implements PazienteDAO {
 
     @Override
     public Optional<Paziente> findByCodiceFiscale(String codiceFiscale) {
-        String sql = "SELECT * FROM Paziente WHERE CodiceFiscale = ?";
+        String sql = "SELECT idpaziente,codifiscale,nome,cognome,datanascita FROM Paziente WHERE CodiceFiscale = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, codiceFiscale.toUpperCase().trim());
@@ -52,7 +52,7 @@ public class PazientePostgresDao implements PazienteDAO {
 
     @Override
     public List<Paziente> findAll() {
-        String sql = "SELECT * FROM Paziente ORDER BY Cognome, Nome";
+        String sql = "SELECT idpaziente,codicefiscale,nome,cognome,datanascita FROM Paziente ORDER BY Cognome, Nome";
         List<Paziente> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
