@@ -228,7 +228,7 @@ public class MedicoPanel extends JPanel {
         turniInfo.setBackground(new Color(245, 245, 245));
         turniInfo.setBorder(BorderFactory.createTitledBorder("I miei turni questa settimana"));
         LocalDate oggi   = LocalDate.now();
-        LocalDate lunedi = oggi.minusDays(oggi.getDayOfWeek().getValue() - 1);
+        LocalDate lunedi = oggi.minusDays((long) oggi.getDayOfWeek().getValue() - 1);
         List<Turno> turniSettimana = controller.getAgendaMedico(
                 medicoCorrente.getIdMedico(), lunedi, lunedi.plusDays(6));
         if (turniSettimana.isEmpty()) {

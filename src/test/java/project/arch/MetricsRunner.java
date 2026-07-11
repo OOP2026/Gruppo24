@@ -20,7 +20,7 @@ public class MetricsRunner {
 
         ComponentDependencyMetrics metrics = ArchitectureMetrics.componentDependencyMetrics(components);
 
-        components.stream().forEach(component -> {
+        components.forEach(component -> {
             System.out.println("Component: " + component.getIdentifier());
             System.out.println("Ce: " + metrics.getEfferentCoupling(component.getIdentifier()));
             System.out.println("Ca: " + metrics.getAfferentCoupling(component.getIdentifier()));
