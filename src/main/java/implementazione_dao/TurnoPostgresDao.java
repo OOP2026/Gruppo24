@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static utils.Messages.DB_ERROR_P0001;
+
 public class TurnoPostgresDao implements TurnoDAO {
 
     private Turno mapRow(ResultSet rs) throws SQLException {
@@ -87,7 +89,7 @@ public class TurnoPostgresDao implements TurnoDAO {
                 throw new DAOException("Il turno del "
                         + t.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                         + " fascia " + t.getFasciaOraria() + " è già stato pianificato.", e);
-            } else if ("P0001".equals(state)) {
+            } else if (DB_ERROR_P0001.equals(state)) {
                 throw new DAOException(e.getMessage(), e);
             } else {
                 throw new DAOException("Errore insert Turno: " + e.getMessage(), e);
@@ -107,7 +109,7 @@ public class TurnoPostgresDao implements TurnoDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             String state = e.getSQLState();
-            if ("P0001".equals(state)) {
+            if (DB_ERROR_P0001.equals(state)) {
                 throw new DAOException(e.getMessage(), e);
             } else {
                 throw new DAOException("Errore update Turno: " + e.getMessage(), e);
@@ -144,7 +146,7 @@ public class TurnoPostgresDao implements TurnoDAO {
                 throw new DAOException("Il medico ha già un turno assegnato per questa data e fascia oraria.", e);
             } else if ("23503".equals(state)) {
                 throw new DAOException("Il turno per la data e fascia specificate non esiste. Pianificarlo prima nel tab dedicato.", e);
-            } else if ("P0001".equals(state)) {
+            } else if (DB_ERROR_P0001.equals(state)) {
                 throw new DAOException(e.getMessage(), e);
             } else {
                 throw new DAOException("Errore imprevisto durante l'assegnazione del turno: " + e.getMessage(), e);

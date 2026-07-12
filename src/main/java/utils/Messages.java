@@ -7,6 +7,8 @@ public class Messages {
 
     public static final String ATTENZIONE_MSG = "Attenzione";
 
+    public static final String DB_ERROR_P0001 = "P0001";
+
     private Messages() {
 
     }

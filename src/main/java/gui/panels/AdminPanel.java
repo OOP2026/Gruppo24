@@ -711,6 +711,28 @@ public class AdminPanel extends JPanel {
                 // campi filtro non ancora validi — ignorato
             }
         }
+
+        private JSpinner buildTimeSpinner() {
+            JSpinner spinner = new JSpinner(new SpinnerDateModel());
+            spinner.setEditor(new JSpinner.DateEditor(spinner, TIME_FORMAT_PATTERN));
+            return spinner;
+        }
+
+        private LocalTime spinnerToLocalTime(JSpinner spinner) {
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(EUROPE_ROME));
+            cal.setTime((Date) spinner.getValue());
+            return LocalTime.of(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE));
+        }
+
+        private void aggiornaSpin(JSpinner inizio, JSpinner fine, FasciaOraria fascia) {
+            if (fascia == null) return;
+            switch (fascia) {
+                case MATTINA:    setSpinnerTime(inizio, 6, 0);  setSpinnerTime(fine, 14, 0); break;
+                case POMERIGGIO: setSpinnerTime(inizio, 14, 0); setSpinnerTime(fine, 22, 0); break;
+                case NOTTE:      setSpinnerTime(inizio, 22, 0); setSpinnerTime(fine, 6, 0);  break;
+                default: break;
+            }
+        }
     }
 
     // Assegnazione Turni
@@ -829,28 +851,6 @@ public class AdminPanel extends JPanel {
 
         panel.add(formPanel, BorderLayout.NORTH);
         return panel;
-    }
-
-    private JSpinner buildTimeSpinner() {
-        JSpinner spinner = new JSpinner(new SpinnerDateModel());
-        spinner.setEditor(new JSpinner.DateEditor(spinner, TIME_FORMAT_PATTERN));
-        return spinner;
-    }
-
-    private LocalTime spinnerToLocalTime(JSpinner spinner) {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(EUROPE_ROME));
-        cal.setTime((Date) spinner.getValue());
-        return LocalTime.of(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE));
-    }
-
-    private void aggiornaSpin(JSpinner inizio, JSpinner fine, FasciaOraria fascia) {
-        if (fascia == null) return;
-        switch (fascia) {
-            case MATTINA:    setSpinnerTime(inizio, 6, 0);  setSpinnerTime(fine, 14, 0); break;
-            case POMERIGGIO: setSpinnerTime(inizio, 14, 0); setSpinnerTime(fine, 22, 0); break;
-            case NOTTE:      setSpinnerTime(inizio, 22, 0); setSpinnerTime(fine, 6, 0);  break;
-            default: break;
-        }
     }
 
     private void setSpinnerTime(JSpinner spinner, int hour, int minute) {
