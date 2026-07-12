@@ -1,7 +1,7 @@
 package gui;
 
 import controller.Controller;
-import dao.DAOException;
+import exceptions.DAOException;
 
 import javax.swing.*;
 import java.awt.*;

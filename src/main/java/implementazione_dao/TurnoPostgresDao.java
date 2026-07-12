@@ -1,6 +1,6 @@
 package implementazione_dao;
 
-import dao.DAOException;
+import exceptions.DAOException;
 import dao.TurnoDAO;
 import database_connection.ConnessioneDatabase;
 import model.FasciaOraria;
@@ -8,6 +8,7 @@ import model.Turno;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -81,7 +82,16 @@ public class TurnoPostgresDao implements TurnoDAO {
             ps.setTime(4, Time.valueOf(t.getOraFine()));
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new DAOException("Errore insert Turno: " + e.getMessage(), e);
+            String state = e.getSQLState();
+            if ("23505".equals(state)) {
+                throw new DAOException("Il turno del "
+                        + t.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        + " fascia " + t.getFasciaOraria() + " è già stato pianificato.", e);
+            } else if ("P0001".equals(state)) {
+                throw new DAOException(e.getMessage(), e);
+            } else {
+                throw new DAOException("Errore insert Turno: " + e.getMessage(), e);
+            }
         }
     }
 
@@ -96,7 +106,12 @@ public class TurnoPostgresDao implements TurnoDAO {
             ps.setString(4, t.getFasciaOraria().name());
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new DAOException("Errore update Turno: " + e.getMessage(), e);
+            String state = e.getSQLState();
+            if ("P0001".equals(state)) {
+                throw new DAOException(e.getMessage(), e);
+            } else {
+                throw new DAOException("Errore update Turno: " + e.getMessage(), e);
+            }
         }
     }
 
@@ -114,16 +129,26 @@ public class TurnoPostgresDao implements TurnoDAO {
     }
 
 
-    public void assegnaTurno(int idMedico, LocalDate data, FasciaOraria fasciaOraria) {
+    @Override
+    public void assegnaTurno(int idMedico, LocalDate data, FasciaOraria fascia) {
         String sql = "INSERT INTO Svolge_Turno (IdMedico, Data, FasciaOraria) VALUES (?, ?, ?::fascia_oraria)";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, idMedico);
             ps.setDate(2, Date.valueOf(data));
-            ps.setString(3, fasciaOraria.name());
+            ps.setString(3, fascia.name());
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new DAOException("Errore assegnaTurno: " + e.getMessage(), e);
+            String state = e.getSQLState();
+            if ("23505".equals(state)) {
+                throw new DAOException("Il medico ha già un turno assegnato per questa data e fascia oraria.", e);
+            } else if ("23503".equals(state)) {
+                throw new DAOException("Il turno per la data e fascia specificate non esiste. Pianificarlo prima nel tab dedicato.", e);
+            } else if ("P0001".equals(state)) {
+                throw new DAOException(e.getMessage(), e);
+            } else {
+                throw new DAOException("Errore imprevisto durante l'assegnazione del turno: " + e.getMessage(), e);
+            }
         }
     }
 

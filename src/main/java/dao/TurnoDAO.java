@@ -14,4 +14,5 @@ public interface TurnoDAO {
     void insert(Turno t);
     void update(Turno t);
     void delete(LocalDate data, FasciaOraria fasciaOraria);
+    void assegnaTurno(int idMedico, LocalDate data, FasciaOraria fascia);
 }

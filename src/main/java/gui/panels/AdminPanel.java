@@ -1,6 +1,7 @@
 package gui.panels;
 
 import controller.Controller;
+import exceptions.ValidationException;
 import model.*;
 
 import javax.swing.*;
@@ -8,12 +9,22 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.DayOfWeek;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.Set;
+import java.util.TimeZone;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import static javax.swing.SwingConstants.LEFT;
 import static utils.DateFormats.DATE_FORMAT_PATTERN;
@@ -33,12 +44,14 @@ public class AdminPanel extends JPanel {
         this.controller = controller;
         setLayout(new BorderLayout());
         JTabbedPane tabs = new JTabbedPane(LEFT);
-        tabs.addTab("Pazienti",    buildPazientiPanel());
-        tabs.addTab("Ricoveri",    buildRicoveriPanel());
-        tabs.addTab("Malattia",    buildMalattiaPanel());
-        tabs.addTab("Letti",       buildLettiPanel());
-        tabs.addTab("Medici",      buildMediciPanel());
-        tabs.addTab("Dimissioni",  buildDimissioniPanel());
+        tabs.addTab("Pazienti",             buildPazientiPanel());
+        tabs.addTab("Ricoveri",             buildRicoveriPanel());
+        tabs.addTab("Malattia",             buildMalattiaPanel());
+        tabs.addTab("Letti",                buildLettiPanel());
+        tabs.addTab("Medici",               buildMediciPanel());
+        tabs.addTab("Dimissioni",           buildDimissioniPanel());
+        tabs.addTab("Pianificazione Turni", buildPianificazioneTurniPanel());
+        tabs.addTab("Assegnazione Turni",   buildAssegnazioneTurniPanel());
         add(tabs, BorderLayout.CENTER);
     }
 
@@ -506,6 +519,347 @@ public class AdminPanel extends JPanel {
         panel.add(formPanel,      BorderLayout.NORTH);
         panel.add(risultatiPanel, BorderLayout.CENTER);
         return panel;
+    }
+
+    // Pianificazione Turni
+
+    private JPanel buildPianificazioneTurniPanel() {
+        return new PianificazioneTurniTab().build();
+    }
+
+    private final class PianificazioneTurniTab {
+        private final JPanel panel = new JPanel(new BorderLayout(5, 5));
+        private final DefaultTableModel tableModel;
+        private final JTable table;
+        private final DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+        private final JTextField dataField;
+        private final JComboBox<FasciaOraria> fasciaCombo = new JComboBox<>(FasciaOraria.values());
+        private final JSpinner spinnerInizio;
+        private final JSpinner spinnerFine;
+        private final JTextField dalField;
+        private final JTextField alField;
+
+        PianificazioneTurniTab() {
+            String[] cols = {"Data", "Fascia", "Ora Inizio", "Ora Fine"};
+            this.tableModel = new DefaultTableModel(cols, 0) {
+                @Override public boolean isCellEditable(int r, int c) { return false; }
+            };
+            this.table = new JTable(tableModel);
+            LocalDate oggi = LocalDate.now(ZoneId.of(EUROPE_ROME));
+            this.dataField    = new JTextField(oggi.format(DATE_FMT), 10);
+            this.dataField.setToolTipText(DATE_FORMAT_PATTERN);
+            this.spinnerInizio = buildTimeSpinner();
+            this.spinnerFine   = buildTimeSpinner();
+            LocalDate dal = oggi.with(DayOfWeek.MONDAY);
+            LocalDate al  = dal.plusWeeks(3).minusDays(1);
+            this.dalField = new JTextField(dal.format(DATE_FMT), 10);
+            this.alField  = new JTextField(al.format(DATE_FMT), 10);
+        }
+
+        JPanel build() {
+            panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            aggiornaSpin(spinnerInizio, spinnerFine, (FasciaOraria) fasciaCombo.getSelectedItem());
+            fasciaCombo.addActionListener(e ->
+                    aggiornaSpin(spinnerInizio, spinnerFine, (FasciaOraria) fasciaCombo.getSelectedItem()));
+            refreshTabella();
+            panel.add(buildNordPanel(), BorderLayout.NORTH);
+            panel.add(buildCentroPanel(), BorderLayout.CENTER);
+            return panel;
+        }
+
+        private JPanel buildNordPanel() {
+            JPanel wrap = new JPanel(new BorderLayout(0, 5));
+
+            JPanel form = new JPanel(new GridBagLayout());
+            form.setBorder(BorderFactory.createTitledBorder("Inserisci Nuovo Turno"));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(4, 4, 4, 4);
+            gbc.fill   = GridBagConstraints.HORIZONTAL;
+            addFormRow(form, gbc, 0, "Data (" + DATE_FORMAT_PATTERN + "):", dataField);
+            addFormRow(form, gbc, 1, "Fascia oraria:", fasciaCombo);
+            addFormRow(form, gbc, 2, "Ora inizio:", spinnerInizio);
+            addFormRow(form, gbc, 3, "Ora fine:", spinnerFine);
+            JButton pianificaBtn = new JButton("Pianifica Turno");
+            pianificaBtn.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
+            gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
+            form.add(pianificaBtn, gbc);
+            pianificaBtn.addActionListener(e -> handlePianifica());
+
+            JPanel filtroPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            filtroPanel.setBorder(BorderFactory.createTitledBorder("Filtro periodo"));
+            filtroPanel.add(new JLabel("Dal:"));
+            filtroPanel.add(dalField);
+            filtroPanel.add(new JLabel(" Al:"));
+            filtroPanel.add(alField);
+            JButton cercaBtn = new JButton("Cerca");
+            cercaBtn.addActionListener(e -> refreshTabella());
+            filtroPanel.add(cercaBtn);
+
+            wrap.add(form, BorderLayout.CENTER);
+            wrap.add(filtroPanel, BorderLayout.SOUTH);
+            return wrap;
+        }
+
+        private JPanel buildCentroPanel() {
+            JPanel centro = new JPanel(new BorderLayout(5, 5));
+            centro.setBorder(BorderFactory.createTitledBorder("Turni Pianificati"));
+
+            JButton modificaBtn = new JButton("Modifica Orari");
+            JButton eliminaBtn  = new JButton("Elimina Turno");
+            modificaBtn.addActionListener(e -> handleModifica());
+            eliminaBtn.addActionListener(e -> handleElimina());
+
+            JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            btnPanel.add(modificaBtn);
+            btnPanel.add(eliminaBtn);
+
+            centro.add(new JScrollPane(table), BorderLayout.CENTER);
+            centro.add(btnPanel, BorderLayout.SOUTH);
+            return centro;
+        }
+
+        private void handlePianifica() {
+            FasciaOraria fascia = (FasciaOraria) fasciaCombo.getSelectedItem();
+            if (fascia == null) { showError(panel, "Selezionare una fascia oraria."); return; }
+            try {
+                LocalDate data      = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
+                LocalTime oraInizio = spinnerToLocalTime(spinnerInizio);
+                LocalTime oraFine   = spinnerToLocalTime(spinnerFine);
+                controller.pianificaTurno(data, fascia, oraInizio, oraFine);
+                refreshTabella();
+                showInfo(panel, "Turno pianificato correttamente.");
+            } catch (DateTimeParseException ex) {
+                JOptionPane.showMessageDialog(panel,
+                        "Formato data non valido. Usare: " + DATE_FORMAT_PATTERN,
+                        "Attenzione", JOptionPane.WARNING_MESSAGE);
+            } catch (ValidationException ex) {
+                JOptionPane.showMessageDialog(panel, ex.getMessage(),
+                        "Attenzione", JOptionPane.WARNING_MESSAGE);
+            }
+        }
+
+        private void handleModifica() {
+            int row = table.getSelectedRow();
+            if (row < 0) { showError(panel, "Selezionare un turno dalla tabella."); return; }
+            try {
+                LocalDate    data   = LocalDate.parse((String) tableModel.getValueAt(row, 0), DATE_FMT);
+                FasciaOraria fascia = FasciaOraria.valueOf((String) tableModel.getValueAt(row, 1));
+
+                JSpinner newInizio  = buildTimeSpinner();
+                JSpinner newFine    = buildTimeSpinner();
+                LocalTime currInizio = LocalTime.parse((String) tableModel.getValueAt(row, 2), timeFmt);
+                LocalTime currFine   = LocalTime.parse((String) tableModel.getValueAt(row, 3), timeFmt);
+                setSpinnerTime(newInizio, currInizio.getHour(), currInizio.getMinute());
+                setSpinnerTime(newFine,   currFine.getHour(),   currFine.getMinute());
+
+                JPanel dlg = new JPanel(new GridLayout(2, 2, 4, 4));
+                dlg.add(new JLabel("Ora inizio:")); dlg.add(newInizio);
+                dlg.add(new JLabel("Ora fine:"));   dlg.add(newFine);
+
+                int res = JOptionPane.showConfirmDialog(panel, dlg,
+                        "Modifica Orari – " + tableModel.getValueAt(row, 0) + " " + fascia,
+                        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                if (res != JOptionPane.OK_OPTION) return;
+
+                controller.modificaTurnoPianificato(data, fascia,
+                        spinnerToLocalTime(newInizio), spinnerToLocalTime(newFine));
+                refreshTabella();
+                showInfo(panel, "Orari aggiornati.");
+            } catch (ValidationException ex) {
+                JOptionPane.showMessageDialog(panel, ex.getMessage(), "Attenzione", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                showError(panel, ex.getMessage());
+            }
+        }
+
+        private void handleElimina() {
+            int row = table.getSelectedRow();
+            if (row < 0) { showError(panel, "Selezionare un turno dalla tabella."); return; }
+            String dataStr   = (String) tableModel.getValueAt(row, 0);
+            String fasciaStr = (String) tableModel.getValueAt(row, 1);
+            int confirm = JOptionPane.showConfirmDialog(panel,
+                    "Eliminare il turno del " + dataStr + " fascia " + fasciaStr
+                            + "?\nSaranno eliminate anche le assegnazioni collegate.",
+                    "Conferma eliminazione", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm != JOptionPane.YES_OPTION) return;
+            try {
+                controller.eliminaTurnoPianificato(
+                        LocalDate.parse(dataStr, DATE_FMT), FasciaOraria.valueOf(fasciaStr));
+                refreshTabella();
+                showInfo(panel, "Turno eliminato.");
+            } catch (ValidationException ex) {
+                JOptionPane.showMessageDialog(panel, ex.getMessage(), "Attenzione", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                showError(panel, ex.getMessage());
+            }
+        }
+
+        private void refreshTabella() {
+            try {
+                LocalDate dal = LocalDate.parse(dalField.getText().trim(), DATE_FMT);
+                LocalDate al  = LocalDate.parse(alField.getText().trim(), DATE_FMT);
+                tableModel.setRowCount(0);
+                for (Turno t : controller.getTurniPianificati(dal, al)) {
+                    tableModel.addRow(new Object[]{
+                        t.getData().format(DATE_FMT),
+                        t.getFasciaOraria().name(),
+                        t.getOraInizio().format(timeFmt),
+                        t.getOraFine().format(timeFmt)
+                    });
+                }
+            } catch (DateTimeParseException ex) {
+                // campi filtro non ancora validi — ignorato
+            }
+        }
+    }
+
+    // Assegnazione Turni
+
+    private JPanel buildAssegnazioneTurniPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createTitledBorder("Assegna Turno a Medico"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(4, 4, 4, 4);
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
+
+        Map<Integer, String> repartiMap = new HashMap<>();
+        controller.getReparti().forEach(r -> repartiMap.put(r.getIdReparto(), r.getNomeReparto()));
+
+        JComboBox<Medico> medicoCombo = new JComboBox<>();
+        controller.getMedici().forEach(medicoCombo::addItem);
+        medicoCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                    int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Medico) {
+                    Medico m = (Medico) value;
+                    String rep = repartiMap.getOrDefault(m.getIdReparto(), "Rep. " + m.getIdReparto());
+                    setText(m.getCognome() + " " + m.getNome() + " — " + rep);
+                }
+                return this;
+            }
+        });
+
+        JTextField dataField = new JTextField(
+                LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT), 10);
+        dataField.setToolTipText(DATE_FORMAT_PATTERN);
+
+        JComboBox<FasciaOraria> fasciaCombo = new JComboBox<>(FasciaOraria.values());
+
+        JLabel orariLabel = new JLabel(" ");
+
+        JButton assegnaBtn = new JButton("Assegna Turno");
+        assegnaBtn.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
+        assegnaBtn.setEnabled(false);
+
+        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+
+        Runnable checkTurno = () -> {
+            try {
+                LocalDate    data   = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
+                FasciaOraria fascia = (FasciaOraria) fasciaCombo.getSelectedItem();
+                if (fascia == null) return;
+                Optional<Turno> opt = controller.trovaTurno(data, fascia);
+                if (opt.isPresent()) {
+                    Turno t = opt.get();
+                    orariLabel.setText("Orari pianificati: "
+                            + t.getOraInizio().format(timeFmt) + "–" + t.getOraFine().format(timeFmt));
+                    orariLabel.setForeground(UIManager.getColor("Label.foreground"));
+                    assegnaBtn.setEnabled(true);
+                } else {
+                    orariLabel.setText("Turno non pianificato per questa data e fascia. Pianificarlo prima nel tab dedicato.");
+                    orariLabel.setForeground(Color.RED);
+                    assegnaBtn.setEnabled(false);
+                }
+            } catch (DateTimeParseException ex) {
+                orariLabel.setText(" ");
+                assegnaBtn.setEnabled(false);
+            } catch (Exception ex) {
+                orariLabel.setText("Errore: " + ex.getMessage());
+                orariLabel.setForeground(Color.RED);
+                assegnaBtn.setEnabled(false);
+            }
+        };
+
+        dataField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e)  { checkTurno.run(); }
+            @Override public void removeUpdate(DocumentEvent e)  { checkTurno.run(); }
+            @Override public void changedUpdate(DocumentEvent e) { checkTurno.run(); }
+        });
+        fasciaCombo.addActionListener(e -> checkTurno.run());
+        checkTurno.run();
+
+        addFormRow(formPanel, gbc, 0, "Medico:",                          medicoCombo);
+        addFormRow(formPanel, gbc, 1, "Data (" + DATE_FORMAT_PATTERN + "):", dataField);
+        addFormRow(formPanel, gbc, 2, "Fascia oraria:",                   fasciaCombo);
+
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        formPanel.add(orariLabel, gbc);
+
+        gbc.gridy = 4;
+        formPanel.add(assegnaBtn, gbc);
+
+        assegnaBtn.addActionListener(e -> {
+            Medico       medico = (Medico) medicoCombo.getSelectedItem();
+            FasciaOraria fascia = (FasciaOraria) fasciaCombo.getSelectedItem();
+            if (medico == null || fascia == null) {
+                showError(panel, "Selezionare medico e fascia oraria.");
+                return;
+            }
+            try {
+                LocalDate data = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
+                controller.assegnaTurnoAMedico(medico.getIdMedico(), data, fascia);
+                JOptionPane.showMessageDialog(panel, "Turno assegnato correttamente.",
+                        "Info", JOptionPane.INFORMATION_MESSAGE);
+            } catch (DateTimeParseException ex) {
+                JOptionPane.showMessageDialog(panel,
+                        "Formato data non valido. Usare: " + DATE_FORMAT_PATTERN,
+                        "Attenzione", JOptionPane.WARNING_MESSAGE);
+            } catch (ValidationException ex) {
+                JOptionPane.showMessageDialog(panel, ex.getMessage(),
+                        "Attenzione", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                showError(panel, ex.getMessage());
+            }
+        });
+
+        panel.add(formPanel, BorderLayout.NORTH);
+        return panel;
+    }
+
+    private JSpinner buildTimeSpinner() {
+        JSpinner spinner = new JSpinner(new SpinnerDateModel());
+        spinner.setEditor(new JSpinner.DateEditor(spinner, "HH:mm"));
+        return spinner;
+    }
+
+    private LocalTime spinnerToLocalTime(JSpinner spinner) {
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(EUROPE_ROME));
+        cal.setTime((Date) spinner.getValue());
+        return LocalTime.of(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE));
+    }
+
+    private void aggiornaSpin(JSpinner inizio, JSpinner fine, FasciaOraria fascia) {
+        if (fascia == null) return;
+        switch (fascia) {
+            case MATTINA:    setSpinnerTime(inizio, 6, 0);  setSpinnerTime(fine, 14, 0); break;
+            case POMERIGGIO: setSpinnerTime(inizio, 14, 0); setSpinnerTime(fine, 22, 0); break;
+            case NOTTE:      setSpinnerTime(inizio, 22, 0); setSpinnerTime(fine, 6, 0);  break;
+            default: break;
+        }
+    }
+
+    private void setSpinnerTime(JSpinner spinner, int hour, int minute) {
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(EUROPE_ROME));
+        cal.set(Calendar.HOUR_OF_DAY, hour);
+        cal.set(Calendar.MINUTE, minute);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        spinner.setValue(cal.getTime());
     }
 
     // Helper

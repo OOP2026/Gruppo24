@@ -1,6 +1,6 @@
 package implementazione_dao;
 
-import dao.DAOException;
+import exceptions.DAOException;
 import dao.SpecializzazioneDAO;
 import database_connection.ConnessioneDatabase;
 import model.Specializzazione;

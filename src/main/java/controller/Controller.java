@@ -1,12 +1,17 @@
 package controller;
 
 import dao.*;
+import exceptions.DAOException;
+import exceptions.ValidationException;
 import implementazione_dao.*;
 import model.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -208,6 +213,113 @@ public class Controller {
 
     public List<Turno> getAgendaMedico(int idMedico, LocalDate inizio, LocalDate fine) {
         return turnoDao.trovaAgendaMedico(idMedico, inizio, fine);
+    }
+
+    // Turni — pianificazione
+
+    public Optional<Turno> trovaTurno(LocalDate data, FasciaOraria fascia) {
+        return turnoDao.findById(data, fascia);
+    }
+
+    public void pianificaTurno(LocalDate data, FasciaOraria fascia,
+                                LocalTime oraInizio, LocalTime oraFine) throws ValidationException {
+        validaTurno(data, fascia, oraInizio, oraFine);
+        try {
+            turnoDao.insert(new Turno(data, fascia, oraInizio, oraFine));
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    public void modificaTurnoPianificato(LocalDate data, FasciaOraria fascia,
+                                          LocalTime oraInizio, LocalTime oraFine) throws ValidationException {
+        validaTurno(data, fascia, oraInizio, oraFine);
+        if (!turnoDao.findById(data, fascia).isPresent())
+            throw new ValidationException("Il turno del "
+                    + data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    + " fascia " + fascia + " non è pianificato.");
+        try {
+            turnoDao.update(new Turno(data, fascia, oraInizio, oraFine));
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    public void eliminaTurnoPianificato(LocalDate data, FasciaOraria fascia) throws ValidationException {
+        if (data == null)  throw new ValidationException("La data è obbligatoria.");
+        if (fascia == null) throw new ValidationException("La fascia oraria è obbligatoria.");
+        try {
+            turnoDao.delete(data, fascia);
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    public List<Turno> getTurniPianificati(LocalDate inizio, LocalDate fine) {
+        List<Turno> result = new ArrayList<>();
+        for (Turno t : turnoDao.findAll()) {
+            if (!t.getData().isBefore(inizio) && !t.getData().isAfter(fine))
+                result.add(t);
+        }
+        result.sort(java.util.Comparator.comparing(Turno::getData)
+                .thenComparingInt(t -> t.getFasciaOraria().ordinal()));
+        return result;
+    }
+
+    // Turni — assegnazione
+
+    public void assegnaTurnoAMedico(int idMedico, LocalDate data,
+                                     FasciaOraria fascia) throws ValidationException {
+        if (data == null)
+            throw new ValidationException("La data è obbligatoria.");
+        if (data.isBefore(LocalDate.now(ZoneId.of(EUROPE_ROME))))
+            throw new ValidationException("La data non può essere nel passato.");
+        if (fascia == null)
+            throw new ValidationException("La fascia oraria è obbligatoria.");
+        if (!turnoDao.findById(data, fascia).isPresent())
+            throw new ValidationException("Il turno del "
+                    + data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    + " fascia " + fascia
+                    + " non è stato pianificato. Pianificarlo prima nel tab dedicato.");
+        try {
+            turnoDao.assegnaTurno(idMedico, data, fascia);
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    private void validaTurno(LocalDate data, FasciaOraria fascia,
+                               LocalTime oraInizio, LocalTime oraFine) throws ValidationException {
+        if (data == null)
+            throw new ValidationException("La data è obbligatoria.");
+        if (data.isBefore(LocalDate.now(ZoneId.of(EUROPE_ROME))))
+            throw new ValidationException("La data non può essere nel passato.");
+        if (fascia == null)
+            throw new ValidationException("La fascia oraria è obbligatoria.");
+        if (oraInizio == null || oraFine == null)
+            throw new ValidationException("Ora di inizio e fine sono obbligatorie.");
+        switch (fascia) {
+            case MATTINA:
+                if (oraInizio.isBefore(LocalTime.of(6, 0)) || oraFine.isAfter(LocalTime.of(14, 0))
+                        || !oraFine.isAfter(oraInizio))
+                    throw new ValidationException(
+                            "Il turno MATTINA deve iniziare non prima delle 06:00 e finire non oltre le 14:00.");
+                break;
+            case POMERIGGIO:
+                if (oraInizio.isBefore(LocalTime.of(14, 0)) || oraFine.isAfter(LocalTime.of(22, 0))
+                        || !oraFine.isAfter(oraInizio))
+                    throw new ValidationException(
+                            "Il turno POMERIGGIO deve iniziare non prima delle 14:00 e finire non oltre le 22:00.");
+                break;
+            case NOTTE:
+                if (oraInizio.isBefore(LocalTime.of(22, 0)) || oraFine.isAfter(LocalTime.of(6, 0))
+                        || !oraFine.isBefore(oraInizio))
+                    throw new ValidationException(
+                            "Il turno NOTTE deve iniziare non prima delle 22:00 e finire non oltre le 06:00 del giorno successivo.");
+                break;
+            default:
+                break;
+        }
     }
 
     // Prestazioni

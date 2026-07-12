@@ -1,7 +1,7 @@
 package implementazione_dao;
 
 import dao.AmministratoreDAO;
-import dao.DAOException;
+import exceptions.DAOException;
 import database_connection.ConnessioneDatabase;
 import model.Amministratore;
 

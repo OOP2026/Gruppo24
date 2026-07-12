@@ -1,6 +1,6 @@
 package implementazione_dao;
 
-import dao.DAOException;
+import exceptions.DAOException;
 import dao.RepartoDAO;
 import database_connection.ConnessioneDatabase;
 import model.Reparto;
