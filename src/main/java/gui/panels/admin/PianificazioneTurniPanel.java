@@ -204,33 +204,28 @@ public class PianificazioneTurniPanel extends JPanel {
         }
     }
 
+    public void refresh() {
+        refreshTabella();
+    }
+
     private void refreshTabella() {
-        try {
-            LocalDate dal = LocalDate.parse(dalField.getText().trim(), DATE_FMT);
-            LocalDate al  = LocalDate.parse(alField.getText().trim(), DATE_FMT);
-            tableModel.setRowCount(0);
-            for (Turno t : controller.getTurniPianificati(dal, al)) {
-                String medicoAssegnato = t.isAssegnato()
-                        ? t.getDescrizioneAssegnazione()
-                        : NON_ASSEGNATO;
-                tableModel.addRow(new Object[]{
+        LocalDate dal = LocalDate.parse(dalField.getText().trim(),DATE_FMT);
+        LocalDate al = LocalDate.parse(alField.getText().trim(),DATE_FMT);
+        tableModel.setRowCount(0);
+        for (Turno t : controller.getTurniPianificati(dal,al)) {
+            String medicoAssegnato = t.isAssegnato()
+                    ? t.getDescrizioneAssegnazione()
+                    : NON_ASSEGNATO;
+            tableModel.addRow(new Object[]{
                     t.getData().format(DATE_FMT),
                     t.getFasciaOraria().name(),
                     t.getOraInizio().format(timeFmt),
                     t.getOraFine().format(timeFmt),
                     medicoAssegnato
-                });
-            }
-        } catch (DateTimeParseException ex) {
-            // campi filtro non ancora validi — ignorato
+            });
         }
     }
 
-    /**
-     * Installa un renderer di riga che evidenzia in rosso tenue i turni ancora scoperti
-     * (colonna "Medico Assegnato" = NON_ASSEGNATO), lasciando i colori standard di sistema
-     * per i turni regolarmente coperti. Preserva l'evidenziazione della riga selezionata.
-     */
     private void installRigaScopertaRenderer() {
         TableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override

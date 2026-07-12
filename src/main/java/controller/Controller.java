@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -262,6 +263,22 @@ public class Controller {
         List<Turno> result = turnoDao.findByPeriodoConAssegnazioni(inizio, fine);
         result.sort(java.util.Comparator.comparing(Turno::getData)
                 .thenComparingInt(t -> t.getFasciaOraria().ordinal()));
+        return result;
+    }
+
+    public List<Turno> getTurniPianificatiConMedici(LocalDate da, LocalDate a,
+                                                    FasciaOraria fasciaFiltro,
+                                                    Integer idMedicoDaEscludere) {
+        List<Turno> result = new ArrayList<>();
+        for (Turno t : getTurniPianificati(da, a)) {
+            if (fasciaFiltro != null && t.getFasciaOraria() != fasciaFiltro)
+                continue;
+            if (idMedicoDaEscludere != null
+                    && t.getMediciAssegnati().stream()
+                        .anyMatch(m -> m.getIdMedico() == idMedicoDaEscludere))
+                continue;
+            result.add(t);
+        }
         return result;
     }
 
