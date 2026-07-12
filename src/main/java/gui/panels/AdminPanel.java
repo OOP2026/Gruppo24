@@ -14,15 +14,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.DayOfWeek;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TimeZone;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -733,6 +726,15 @@ public class AdminPanel extends JPanel {
                 default: break;
             }
         }
+
+        private void setSpinnerTime(JSpinner spinner, int hour, int minute) {
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(EUROPE_ROME));
+            cal.set(Calendar.HOUR_OF_DAY, hour);
+            cal.set(Calendar.MINUTE, minute);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            spinner.setValue(cal.getTime());
+        }
     }
 
     // Assegnazione Turni
@@ -757,8 +759,7 @@ public class AdminPanel extends JPanel {
             public Component getListCellRendererComponent(JList<?> list, Object value,
                     int index, boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Medico) {
-                    Medico m = (Medico) value;
+                if (value instanceof Medico m) {
                     String rep = repartiMap.getOrDefault(m.getIdReparto(), "Rep. " + m.getIdReparto());
                     setText(m.getCognome() + " " + m.getNome() + " — " + rep);
                 }
@@ -851,15 +852,7 @@ public class AdminPanel extends JPanel {
 
         panel.add(formPanel, BorderLayout.NORTH);
         return panel;
-    }
 
-    private void setSpinnerTime(JSpinner spinner, int hour, int minute) {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(EUROPE_ROME));
-        cal.set(Calendar.HOUR_OF_DAY, hour);
-        cal.set(Calendar.MINUTE, minute);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        spinner.setValue(cal.getTime());
     }
 
     // Helper
