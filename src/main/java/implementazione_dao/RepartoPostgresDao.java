@@ -23,7 +23,7 @@ public class RepartoPostgresDao implements RepartoDAO {
 
     @Override
     public Optional<Reparto> findById(int id) {
-        String sql = "SELECT idreparto,nomereparto,piano,ala FROM Reparto WHERE IdReparto = ?";
+        String sql = "SELECT IdReparto, NomeReparto, Piano, Ala FROM Reparto WHERE IdReparto = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -37,7 +37,7 @@ public class RepartoPostgresDao implements RepartoDAO {
 
     @Override
     public List<Reparto> findAll() {
-        String sql = "SELECT idreparto,nomereparto,piano,ala FROM Reparto ORDER BY NomeReparto";
+        String sql = "SELECT IdReparto, NomeReparto, Piano, Ala FROM Reparto ORDER BY NomeReparto";
         List<Reparto> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);

@@ -26,7 +26,7 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
 
     @Override
     public Optional<PeriodoMalattia> findById(String codiceCertificato) {
-        String sql = "SELECT codicecertificato,datainiziomalattia,datafinemalattia,idmedico FROM Periodo_Malattia WHERE CodiceCertificato = ?";
+        String sql = "SELECT CodiceCertificato, DataInizioMalattia, DataFineMalattia, IdMedico FROM Periodo_Malattia WHERE CodiceCertificato = ?";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, codiceCertificato);
@@ -40,7 +40,7 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
 
     @Override
     public List<PeriodoMalattia> findAll() {
-        String sql = "SELECT codicecertificato,datainiziomalattia,datafinemalattia,idmedico FROM Periodo_Malattia ORDER BY DataInizioMalattia DESC";
+        String sql = "SELECT CodiceCertificato, DataInizioMalattia, DataFineMalattia, IdMedico FROM Periodo_Malattia ORDER BY DataInizioMalattia DESC";
         List<PeriodoMalattia> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
