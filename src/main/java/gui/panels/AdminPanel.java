@@ -27,8 +27,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import static javax.swing.SwingConstants.LEFT;
-import static utils.DateFormats.DATE_FORMAT_PATTERN;
-import static utils.DateFormats.DATE_TIME_FORMAT_PATTERN;
+import static utils.DateFormats.*;
+import static utils.Messages.*;
 import static utils.TimeZones.EUROPE_ROME;
 
 public class AdminPanel extends JPanel {
@@ -237,7 +237,7 @@ public class AdminPanel extends JPanel {
                 clearFields(praticaField, inizioField, fineField, motivoField);
                 showInfo(panel, "Ricovero registrato.");
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido. Usare: " + DATE_TIME_FORMAT_PATTERN);
+                showError(panel, DATE_FORMAT_MSG_USE + DATE_TIME_FORMAT_PATTERN);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -268,7 +268,7 @@ public class AdminPanel extends JPanel {
                 refreshRicoveri(tableModel);
                 showInfo(panel, "Dimissione registrata.");
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido.");
+                showError(panel, DATE_FORMAT_MSG);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -384,7 +384,7 @@ public class AdminPanel extends JPanel {
                 if (risultati.isEmpty())
                     showInfo(panel, "Nessuna dimissione prevista per " + dataField.getText().trim());
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido " + DATE_FORMAT_PATTERN);
+                showError(panel, DATE_FORMAT_MSG + " " + DATE_FORMAT_PATTERN);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -489,7 +489,7 @@ public class AdminPanel extends JPanel {
 
                 List<Sostituto> sostituti = controller.trovaSostituti(medico.getIdMedico(), inizio, fine);
                 sostitutoModel.setRowCount(0);
-                DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+                DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern(TIME_FORMAT_PATTERN);
                 for (Sostituto s : sostituti) {
                     sostitutoModel.addRow(new Object[]{
                         s.data().format(DATE_FMT),
@@ -506,7 +506,7 @@ public class AdminPanel extends JPanel {
                 showInfo(panel, "Periodo di malattia registrato per Dr. "
                         + medico.getNome() + " " + medico.getCognome() + ".");
             } catch (DateTimeParseException ex) {
-                showError(panel, "Formato data non valido " + DATE_FORMAT_PATTERN);
+                showError(panel, DATE_FORMAT_MSG + " " + DATE_FORMAT_PATTERN);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -531,7 +531,7 @@ public class AdminPanel extends JPanel {
         private final JPanel panel = new JPanel(new BorderLayout(5, 5));
         private final DefaultTableModel tableModel;
         private final JTable table;
-        private final DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+        private final DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern(TIME_FORMAT_PATTERN);
         private final JTextField dataField;
         private final JComboBox<FasciaOraria> fasciaCombo = new JComboBox<>(FasciaOraria.values());
         private final JSpinner spinnerInizio;
@@ -630,11 +630,11 @@ public class AdminPanel extends JPanel {
                 showInfo(panel, "Turno pianificato correttamente.");
             } catch (DateTimeParseException ex) {
                 JOptionPane.showMessageDialog(panel,
-                        "Formato data non valido. Usare: " + DATE_FORMAT_PATTERN,
-                        "Attenzione", JOptionPane.WARNING_MESSAGE);
+                        DATE_FORMAT_MSG_USE + DATE_FORMAT_PATTERN,
+                        ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
             } catch (ValidationException ex) {
                 JOptionPane.showMessageDialog(panel, ex.getMessage(),
-                        "Attenzione", JOptionPane.WARNING_MESSAGE);
+                        ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
             }
         }
 
@@ -666,7 +666,7 @@ public class AdminPanel extends JPanel {
                 refreshTabella();
                 showInfo(panel, "Orari aggiornati.");
             } catch (ValidationException ex) {
-                JOptionPane.showMessageDialog(panel, ex.getMessage(), "Attenzione", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(panel, ex.getMessage(), ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -688,7 +688,7 @@ public class AdminPanel extends JPanel {
                 refreshTabella();
                 showInfo(panel, "Turno eliminato.");
             } catch (ValidationException ex) {
-                JOptionPane.showMessageDialog(panel, ex.getMessage(), "Attenzione", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(panel, ex.getMessage(), ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -756,7 +756,7 @@ public class AdminPanel extends JPanel {
         assegnaBtn.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
         assegnaBtn.setEnabled(false);
 
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern(TIME_FORMAT_PATTERN);
 
         Runnable checkTurno = () -> {
             try {
@@ -817,11 +817,11 @@ public class AdminPanel extends JPanel {
                         "Info", JOptionPane.INFORMATION_MESSAGE);
             } catch (DateTimeParseException ex) {
                 JOptionPane.showMessageDialog(panel,
-                        "Formato data non valido. Usare: " + DATE_FORMAT_PATTERN,
-                        "Attenzione", JOptionPane.WARNING_MESSAGE);
+                        DATE_FORMAT_MSG_USE + DATE_FORMAT_PATTERN,
+                        ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
             } catch (ValidationException ex) {
                 JOptionPane.showMessageDialog(panel, ex.getMessage(),
-                        "Attenzione", JOptionPane.WARNING_MESSAGE);
+                        ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
             } catch (Exception ex) {
                 showError(panel, ex.getMessage());
             }
@@ -833,7 +833,7 @@ public class AdminPanel extends JPanel {
 
     private JSpinner buildTimeSpinner() {
         JSpinner spinner = new JSpinner(new SpinnerDateModel());
-        spinner.setEditor(new JSpinner.DateEditor(spinner, "HH:mm"));
+        spinner.setEditor(new JSpinner.DateEditor(spinner, TIME_FORMAT_PATTERN));
         return spinner;
     }
 
