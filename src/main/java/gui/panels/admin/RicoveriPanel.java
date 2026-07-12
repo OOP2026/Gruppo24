@@ -148,7 +148,7 @@ public class RicoveriPanel extends JPanel {
         if (fineStr.isEmpty() || fineStr.startsWith("dd/MM")) return null;
         return LocalDateTime.parse(fineStr, DATETIME_FMT);
     }
-    
+
     public void refresh() {
         Paziente selezionato = (Paziente) pazienteCombo.getSelectedItem();
         pazienteCombo.removeAllItems();

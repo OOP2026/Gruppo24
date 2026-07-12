@@ -205,8 +205,46 @@ public class Controller {
         periodoMalattiaDao.insert(pm);
     }
 
-    public List<Sostituto> trovaSostituti(int idMedico, LocalDate inizio, LocalDate fine) {
-        return periodoMalattiaDao.trovaSostituti(idMedico, inizio, fine);
+    public List<TurnoScoperto> turniScoperti(int idMedico, LocalDate inizio, LocalDate fine)
+            throws ValidationException {
+        validaPeriodoMalattia(inizio, fine);
+        try {
+            return periodoMalattiaDao.trovaTurniScoperti(idMedico, inizio, fine);
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    public List<PrestazioneScoperta> prestazioniScoperte(int idMedico, LocalDate inizio, LocalDate fine)
+            throws ValidationException {
+        validaPeriodoMalattia(inizio, fine);
+        try {
+            return periodoMalattiaDao.trovaPrestazioniScoperte(idMedico, inizio, fine);
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    public void applicaRiassegnazioni(List<RiassegnazioneTurno> turni,
+                                      List<RiassegnazionePrestazione> prestazioni) throws ValidationException {
+        boolean nessunTurno = turni == null || turni.isEmpty();
+        boolean nessunaPrestazione = prestazioni == null || prestazioni.isEmpty();
+        if (nessunTurno && nessunaPrestazione)
+            throw new ValidationException("Nessuna riassegnazione selezionata.");
+        try {
+            periodoMalattiaDao.applicaRiassegnazioni(
+                    nessunTurno ? List.of() : turni,
+                    nessunaPrestazione ? List.of() : prestazioni);
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    private void validaPeriodoMalattia(LocalDate inizio, LocalDate fine) throws ValidationException {
+        if (inizio == null || fine == null)
+            throw new ValidationException("Le date del periodo di malattia sono obbligatorie.");
+        if (fine.isBefore(inizio))
+            throw new ValidationException("La data di fine non può precedere quella di inizio.");
     }
 
     // Agenda medico
