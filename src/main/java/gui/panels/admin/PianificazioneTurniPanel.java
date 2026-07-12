@@ -7,7 +7,9 @@ import model.FasciaOraria;
 import model.Turno;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -26,6 +28,11 @@ public class PianificazioneTurniPanel extends JPanel {
     private static final String FONT_SANS_SERIF = "SansSerif";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN);
 
+    private static final String NON_ASSEGNATO       = "NON ASSEGNATO";
+    private static final int    COL_MEDICO          = 4;
+    private static final Color  BG_TURNO_SCOPERTO   = new Color(255, 230, 230);
+    private static final Color  FG_TURNO_SCOPERTO   = new Color(153, 0, 0);
+
     private final transient Controller controller;
     private final DefaultTableModel tableModel;
     private final JTable table;
@@ -41,11 +48,12 @@ public class PianificazioneTurniPanel extends JPanel {
         super(new BorderLayout(5, 5));
         this.controller = controller;
 
-        String[] cols = {"Data", "Fascia", "Ora Inizio", "Ora Fine"};
+        String[] cols = {"Data", "Fascia", "Ora Inizio", "Ora Fine", "Medico Assegnato"};
         this.tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         this.table = new JTable(tableModel);
+        installRigaScopertaRenderer();
         LocalDate oggi = LocalDate.now(ZoneId.of(EUROPE_ROME));
         this.dataField    = new JTextField(oggi.format(DATE_FMT), 10);
         this.dataField.setToolTipText(DATE_FORMAT_PATTERN);
@@ -202,15 +210,55 @@ public class PianificazioneTurniPanel extends JPanel {
             LocalDate al  = LocalDate.parse(alField.getText().trim(), DATE_FMT);
             tableModel.setRowCount(0);
             for (Turno t : controller.getTurniPianificati(dal, al)) {
+                String medicoAssegnato = t.isAssegnato()
+                        ? t.getDescrizioneAssegnazione()
+                        : NON_ASSEGNATO;
                 tableModel.addRow(new Object[]{
                     t.getData().format(DATE_FMT),
                     t.getFasciaOraria().name(),
                     t.getOraInizio().format(timeFmt),
-                    t.getOraFine().format(timeFmt)
+                    t.getOraFine().format(timeFmt),
+                    medicoAssegnato
                 });
             }
         } catch (DateTimeParseException ex) {
             // campi filtro non ancora validi — ignorato
+        }
+    }
+
+    /**
+     * Installa un renderer di riga che evidenzia in rosso tenue i turni ancora scoperti
+     * (colonna "Medico Assegnato" = NON_ASSEGNATO), lasciando i colori standard di sistema
+     * per i turni regolarmente coperti. Preserva l'evidenziazione della riga selezionata.
+     */
+    private void installRigaScopertaRenderer() {
+        TableCellRenderer renderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(tbl, value, isSelected,
+                        hasFocus, row, column);
+                Object medicoCell = tbl.getModel().getValueAt(row, COL_MEDICO);
+                boolean scoperto = NON_ASSEGNATO.equals(medicoCell);
+                if (isSelected) {
+                    c.setBackground(tbl.getSelectionBackground());
+                    c.setForeground(tbl.getSelectionForeground());
+                } else if (scoperto) {
+                    c.setBackground(BG_TURNO_SCOPERTO);
+                    c.setForeground(FG_TURNO_SCOPERTO);
+                } else {
+                    c.setBackground(tbl.getBackground());
+                    c.setForeground(tbl.getForeground());
+                }
+                if (c instanceof JLabel label && column == COL_MEDICO) {
+                    label.setFont(label.getFont().deriveFont(scoperto ? Font.BOLD : Font.PLAIN));
+                }
+                return c;
+            }
+        };
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(renderer);
         }
     }
 
