@@ -14,24 +14,18 @@ public class AdminPanel extends JPanel {
         setLayout(new BorderLayout());
         JTabbedPane tabs = new JTabbedPane(LEFT);
 
-        PianificazioneTurniPanel pianificazione = new PianificazioneTurniPanel(controller);
-        AssegnazioneTurniPanel   assegnazione   = new AssegnazioneTurniPanel(controller);
-        RicoveriPanel            ricoveri       = new RicoveriPanel(controller);
-
         tabs.addTab("Pazienti",             new PazientiPanel(controller));
-        tabs.addTab("Ricoveri",             ricoveri);
+        tabs.addTab("Ricoveri",             new RicoveriPanel(controller));
         tabs.addTab("Malattia",             new MalattiaPanel(controller));
         tabs.addTab("Letti",                new LettiPanel(controller));
         tabs.addTab("Medici",               new MediciPanel(controller));
         tabs.addTab("Dimissioni",           new DimissioniPanel(controller));
-        tabs.addTab("Pianificazione Turni", pianificazione);
-        tabs.addTab("Assegnazione Turni",   assegnazione);
+        tabs.addTab("Pianificazione Turni", new PianificazioneTurniPanel(controller));
+        tabs.addTab("Assegnazione Turni",   new AssegnazioneTurniPanel(controller));
 
         tabs.addChangeListener(e -> {
             Component selezionato = tabs.getSelectedComponent();
-            if (selezionato == pianificazione) pianificazione.refresh();
-            else if (selezionato == assegnazione) assegnazione.refresh();
-            else if (selezionato == ricoveri) ricoveri.refresh();
+            if (selezionato instanceof RefreshablePanel refreshable) refreshable.refresh();
         });
 
         add(tabs, BorderLayout.CENTER);

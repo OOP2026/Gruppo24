@@ -13,27 +13,28 @@ import java.time.format.DateTimeFormatter;
 import static gui.utils.GuiUtils.*;
 import static utils.DateFormats.DATE_FORMAT_PATTERN;
 
-public class PazientiPanel extends JPanel {
+public class PazientiPanel extends JPanel implements RefreshablePanel {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN);
 
     private final transient Controller controller;
+    private final DefaultTableModel tableModel;
 
     public PazientiPanel(Controller controller) {
         super(new BorderLayout(5, 5));
         this.controller = controller;
+        this.tableModel = new DefaultTableModel(
+                new String[]{"CF", "Nome", "Cognome", "Data Nascita", "ID"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         buildUI();
     }
 
     private void buildUI() {
-        String[] cols = {"CF", "Nome", "Cognome", "Data Nascita", "ID"};
-        DefaultTableModel tableModel = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
         JTable table = new JTable(tableModel);
         table.removeColumn(table.getColumnModel().getColumn(4));
-        refreshPazienti(tableModel);
+        refreshPazienti();
 
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBorder(BorderFactory.createTitledBorder("Aggiungi / Modifica Paziente"));
@@ -74,7 +75,7 @@ public class PazientiPanel extends JPanel {
                 LocalDate nascita = LocalDate.parse(nascitaField.getText().trim(), DATE_FMT);
                 controller.aggiungiPaziente(cfField.getText().trim(),
                         nomeField.getText().trim(), cognomeField.getText().trim(), nascita);
-                refreshPazienti(tableModel);
+                refreshPazienti();
                 clearFields(cfField, nomeField, cognomeField, nascitaField);
                 showInfo(this, "Paziente aggiunto con successo.");
             } catch (Exception ex) {
@@ -90,7 +91,7 @@ public class PazientiPanel extends JPanel {
                 LocalDate nascita = LocalDate.parse(nascitaField.getText().trim(), DATE_FMT);
                 controller.modificaPaziente(idPaziente, nomeField.getText().trim(),
                         cognomeField.getText().trim(), nascita);
-                refreshPazienti(tableModel);
+                refreshPazienti();
                 showInfo(this, "Paziente modificato.");
             } catch (Exception ex) {
                 showError(this, ex.getMessage());
@@ -101,10 +102,15 @@ public class PazientiPanel extends JPanel {
         add(formPanel, BorderLayout.SOUTH);
     }
 
-    private void refreshPazienti(DefaultTableModel model) {
-        model.setRowCount(0);
+    @Override
+    public void refresh() {
+        refreshPazienti();
+    }
+
+    private void refreshPazienti() {
+        tableModel.setRowCount(0);
         for (Paziente p : controller.getPazienti()) {
-            model.addRow(new Object[]{
+            tableModel.addRow(new Object[]{
                 p.getCodiceFiscale(), p.getNome(), p.getCognome(),
                 p.getDataNascita().format(DATE_FMT),
                 p.getIdPaziente()

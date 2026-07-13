@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,6 +24,7 @@ public class MedicoPanel extends JPanel {
 
     private final transient  Controller controller;
     private final transient  Medico medicoCorrente;
+    private final transient List<Runnable> tabRefreshers = new ArrayList<>();
 
     public MedicoPanel(Controller controller) {
         this.controller     = controller;
@@ -33,6 +35,13 @@ public class MedicoPanel extends JPanel {
         tabs.addTab("Agenda Settimanale", buildAgendaSettimanalePanel());
         tabs.addTab("Nuova Prestazione", buildNuovaPrestazionePanel());
         tabs.addTab("Modifica Esiti", buildModificaEsitiPanel());
+
+        // Ogni sotto-tab si riallinea ai dati correnti quando torna visibile.
+        tabs.addChangeListener(e -> {
+            int i = tabs.getSelectedIndex();
+            if (i >= 0 && i < tabRefreshers.size()) tabRefreshers.get(i).run();
+        });
+
         add(tabs, BorderLayout.CENTER);
     }
 
@@ -62,6 +71,7 @@ public class MedicoPanel extends JPanel {
         });
         cercaBtn.addActionListener(e -> aggiorna.run());
         aggiorna.run();
+        tabRefreshers.add(aggiorna);
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
         top.add(new JLabel("Data (dd/MM/yyyy):"));
@@ -187,6 +197,7 @@ public class MedicoPanel extends JPanel {
         prevBtn.addActionListener(e -> { settimana[0] = settimana[0].minusWeeks(1); aggiornaSettimana.run(); });
         nextBtn.addActionListener(e -> { settimana[0] = settimana[0].plusWeeks(1);  aggiornaSettimana.run(); });
         aggiornaSettimana.run();
+        tabRefreshers.add(aggiornaSettimana);
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.CENTER));
         top.add(prevBtn);
@@ -276,6 +287,13 @@ public class MedicoPanel extends JPanel {
             }
         });
 
+        tabRefreshers.add(() -> {
+            Object selezionato = ricoveroCombo.getSelectedItem();
+            ricoveroCombo.removeAllItems();
+            controller.getRicoveriInCorso().forEach(ricoveroCombo::addItem);
+            if (selezionato != null) ricoveroCombo.setSelectedItem(selezionato);
+        });
+
         panel.add(formPanel, BorderLayout.CENTER);
         return panel;
     }
@@ -296,6 +314,7 @@ public class MedicoPanel extends JPanel {
         AtomicReference<List<Prestazione>> cache = new AtomicReference<>(null);
         Runnable refreshEsiti = () -> refreshEsitiTable(tableModel, cache);
         refreshEsiti.run();
+        tabRefreshers.add(refreshEsiti);
 
         JTextArea esitoArea = new JTextArea(4, 40);
         esitoArea.setLineWrap(true);

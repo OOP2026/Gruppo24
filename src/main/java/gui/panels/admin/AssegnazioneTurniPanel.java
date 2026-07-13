@@ -27,7 +27,7 @@ import static utils.DateFormats.*;
 import static utils.Messages.*;
 import static utils.TimeZones.EUROPE_ROME;
 
-public class AssegnazioneTurniPanel extends JPanel {
+public class AssegnazioneTurniPanel extends JPanel implements RefreshablePanel {
 
     private static final String FONT_SANS_SERIF = "SansSerif";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN);
@@ -205,6 +205,7 @@ public class AssegnazioneTurniPanel extends JPanel {
         refreshTabellaTurni();
     }
 
+    @Override
     public void refresh() {
         refreshTabellaTurni();
     }

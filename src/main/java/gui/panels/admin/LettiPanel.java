@@ -11,46 +11,33 @@ import java.util.Set;
 
 import static javax.swing.SwingConstants.CENTER;
 
-public class LettiPanel extends JPanel {
+public class LettiPanel extends JPanel implements RefreshablePanel {
 
     private static final String FONT_SANS_SERIF = "SansSerif";
 
     private final transient Controller controller;
+    private final JComboBox<Reparto> repartoCombo;
+    private final JPanel lettiGrid = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
 
     public LettiPanel(Controller controller) {
         super(new BorderLayout(5, 5));
         this.controller = controller;
+        this.repartoCombo = buildRepartoCombo();
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         buildUI();
     }
 
     private void buildUI() {
-        JComboBox<Reparto> repartoCombo = buildRepartoCombo();
-        JPanel lettiGrid  = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         JScrollPane scroll = new JScrollPane(lettiGrid);
 
-        Runnable aggiorna = () -> {
-            lettiGrid.removeAll();
-            Reparto rep = (Reparto) repartoCombo.getSelectedItem();
-            if (rep == null) return;
-            Set<String> occupati = new HashSet<>();
-            controller.getLettiOccupati().forEach(l -> occupati.add(l.getCodiceUnivoco()));
-            for (Letto l : controller.getLettiPerReparto(rep.getIdReparto())) {
-                JLabel badge = createLettoBadge(l, occupati);
-                lettiGrid.add(badge);
-            }
-            lettiGrid.revalidate();
-            lettiGrid.repaint();
-        };
-
-        repartoCombo.addActionListener(e -> aggiorna.run());
+        repartoCombo.addActionListener(e -> aggiorna());
         if (repartoCombo.getItemCount() > 0) {
             repartoCombo.setSelectedIndex(0);
-            aggiorna.run();
+            aggiorna();
         }
 
         JButton refreshBtn = new JButton("Aggiorna");
-        refreshBtn.addActionListener(e -> aggiorna.run());
+        refreshBtn.addActionListener(e -> aggiorna());
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
         top.add(new JLabel("Reparto:"));
@@ -62,6 +49,25 @@ public class LettiPanel extends JPanel {
 
         add(top,    BorderLayout.NORTH);
         add(scroll, BorderLayout.CENTER);
+    }
+
+    private void aggiorna() {
+        lettiGrid.removeAll();
+        Reparto rep = (Reparto) repartoCombo.getSelectedItem();
+        if (rep != null) {
+            Set<String> occupati = new HashSet<>();
+            controller.getLettiOccupati().forEach(l -> occupati.add(l.getCodiceUnivoco()));
+            for (Letto l : controller.getLettiPerReparto(rep.getIdReparto())) {
+                lettiGrid.add(createLettoBadge(l, occupati));
+            }
+        }
+        lettiGrid.revalidate();
+        lettiGrid.repaint();
+    }
+
+    @Override
+    public void refresh() {
+        aggiorna();
     }
 
     private JComboBox<Reparto> buildRepartoCombo() {

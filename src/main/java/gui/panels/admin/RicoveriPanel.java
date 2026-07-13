@@ -15,7 +15,7 @@ import static gui.utils.GuiUtils.*;
 import static utils.DateFormats.*;
 import static utils.Messages.*;
 
-public class RicoveriPanel extends JPanel {
+public class RicoveriPanel extends JPanel implements RefreshablePanel {
 
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT_PATTERN);
 
@@ -149,6 +149,7 @@ public class RicoveriPanel extends JPanel {
         return LocalDateTime.parse(fineStr, DATETIME_FMT);
     }
 
+    @Override
     public void refresh() {
         Paziente selezionato = (Paziente) pazienteCombo.getSelectedItem();
         pazienteCombo.removeAllItems();

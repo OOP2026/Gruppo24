@@ -23,7 +23,7 @@ import static utils.DateFormats.*;
 import static utils.Messages.*;
 import static utils.TimeZones.EUROPE_ROME;
 
-public class PianificazioneTurniPanel extends JPanel {
+public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel {
 
     private static final String FONT_SANS_SERIF = "SansSerif";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN);
@@ -204,6 +204,7 @@ public class PianificazioneTurniPanel extends JPanel {
         }
     }
 
+    @Override
     public void refresh() {
         refreshTabella();
     }

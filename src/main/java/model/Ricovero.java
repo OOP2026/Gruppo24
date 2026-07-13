@@ -1,6 +1,9 @@
 package model;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+
+import static utils.TimeZones.EUROPE_ROME;
 
 public class Ricovero {
 
@@ -25,7 +28,8 @@ public class Ricovero {
     }
 
     public boolean isInCorso() {
-        return dataDimissioneRicovero == null;
+        return dataDimissioneRicovero == null
+                || dataDimissioneRicovero.isAfter(LocalDateTime.now(ZoneId.of(EUROPE_ROME)));
     }
 
     public String getNumeroPratica() { return numeroPratica; }
