@@ -14,7 +14,6 @@ import java.awt.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Date;
 import java.util.List;
 
 import static gui.utils.GuiUtils.*;
@@ -36,7 +35,7 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
     private final transient Controller controller;
     private final DefaultTableModel tableModel;
     private final JTable table;
-    private final DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern(TIME_FORMAT_PATTERN);
+    private final transient DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern(TIME_FORMAT_PATTERN);
     private final JTextField dataField;
     private final JComboBox<FasciaOraria> fasciaCombo = new JComboBox<>(FasciaOraria.values());
     private final JSpinner spinnerInizio;
@@ -272,8 +271,11 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
     }
 
     private LocalTime spinnerToLocalTime(JSpinner spinner) {
-        Date date = (Date) spinner.getValue();
-        return date.toInstant().atZone(ROMA_ZONE).toLocalTime();
+        Object value = spinner.getValue();
+        if (value instanceof java.util.Date d) {
+            return d.toInstant().atZone(ROMA_ZONE).toLocalTime();
+        }
+        return LocalTime.MIDNIGHT;
     }
 
     private void aggiornaSpin(JSpinner inizio, JSpinner fine, FasciaOraria fascia) {
@@ -288,6 +290,6 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
     private void setSpinnerTime(JSpinner spinner, LocalTime time) {
         LocalDateTime ldt = LocalDateTime.of(LocalDate.now(ROMA_ZONE), time);
         Instant instant = ldt.atZone(ROMA_ZONE).toInstant();
-        spinner.setValue(Date.from(instant));
+        spinner.setValue(new java.util.Date(instant.toEpochMilli()));
     }
 }

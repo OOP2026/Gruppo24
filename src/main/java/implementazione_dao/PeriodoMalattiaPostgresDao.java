@@ -262,15 +262,27 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
             conn.commit();
         } catch (SQLException e) {
             if (conn != null) {
-                try { conn.rollback(); } catch (SQLException ignored) {}
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    e.addSuppressed(rollbackEx);
+                }
             }
             throw new DAOException("Errore durante l'applicazione delle riassegnazioni in batch: " + e.getMessage(), e);
         } finally {
             if (conn != null) {
                 try {
                     conn.setAutoCommit(true);
+                } catch (SQLException ignored) {
+                /* L'eccezione viene ignorata perché la connessione sta comunque per essere chiusa
+                   e l'eventuale fallimento del ripristino dell'auto-commit non è critico in questa fase. */
+                }
+                try {
                     conn.close();
-                } catch (SQLException ignored) {}
+                } catch (SQLException ignored) {
+                /* Il fallimento del close viene ignorato in quanto si tratta di un'operazione
+                   di pulizia best-effort nel blocco finally. */
+                }
             }
         }
     }
