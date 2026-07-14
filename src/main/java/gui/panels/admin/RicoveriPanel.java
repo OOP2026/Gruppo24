@@ -6,10 +6,15 @@ import model.*;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static gui.utils.GuiUtils.*;
 import static utils.DateFormats.*;
@@ -18,6 +23,13 @@ import static utils.Messages.*;
 public class RicoveriPanel extends JPanel implements RefreshablePanel {
 
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT_PATTERN);
+    private static final int COL_PAZIENTE = 0;
+    private static final int COL_NUM_PRATICA = 1;
+    private static final int COL_LETTO = 2;
+    private static final int COL_INIZIO = 3;
+    private static final int COL_DIMISSIONE = 4;
+    private static final int COL_IN_CORSO = 5;
+    private static final int PAZIENTE_MIN_WIDTH = 260;
 
     private final transient Controller controller;
     private final DefaultTableModel tableModel;
@@ -34,11 +46,12 @@ public class RicoveriPanel extends JPanel implements RefreshablePanel {
         super(new BorderLayout(5, 5));
         this.controller = controller;
 
-        String[] cols = {"N. Pratica", "Letto", "Inizio", "Dimissione", "In corso"};
+        String[] cols = {"Paziente" , "N. Pratica", "Letto", "Inizio", "Dimissione", "In corso"};
         this.tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         this.table = new JTable(tableModel);
+        configureColumnWidths();
 
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         buildUI();
@@ -63,8 +76,16 @@ public class RicoveriPanel extends JPanel implements RefreshablePanel {
         btnPanel.add(dimettBtn);
 
         add(buildFormPanel(), BorderLayout.NORTH);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                adjustPazienteColumnWidth();
+            }
+        });
+        add(scrollPane, BorderLayout.CENTER);
         add(btnPanel, BorderLayout.SOUTH);
+        SwingUtilities.invokeLater(this::adjustPazienteColumnWidth);
     }
 
     private JPanel buildFormPanel() {
@@ -119,11 +140,11 @@ public class RicoveriPanel extends JPanel implements RefreshablePanel {
             showError(this, "Selezionare un ricovero dalla tabella.");
             return;
         }
-        if ("No".equals(tableModel.getValueAt(row, 4))) {
+        if ("No".equals(tableModel.getValueAt(row, COL_IN_CORSO))) {
             showError(this, "Ricovero già concluso.");
             return;
         }
-        String numeroPratica = (String) tableModel.getValueAt(row, 0);
+        String numeroPratica = (String) tableModel.getValueAt(row, COL_NUM_PRATICA);
         String dataStr = JOptionPane.showInputDialog(this,
                 "Data e ora dimissione " + DATE_TIME_FORMAT_PATTERN,
                 "Registra Dimissione", JOptionPane.QUESTION_MESSAGE);
@@ -158,10 +179,60 @@ public class RicoveriPanel extends JPanel implements RefreshablePanel {
         refreshRicoveri(tableModel);
     }
 
+    private void configureColumnWidths() {
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+        setFixedColumnWidth(COL_NUM_PRATICA, 120);
+        setFixedColumnWidth(COL_LETTO, 70);
+        setFixedColumnWidth(COL_INIZIO, 155);
+        setFixedColumnWidth(COL_DIMISSIONE, 155);
+
+        TableColumn pazienteCol = table.getColumnModel().getColumn(COL_PAZIENTE);
+        pazienteCol.setPreferredWidth(300);
+        pazienteCol.setMinWidth(PAZIENTE_MIN_WIDTH);
+
+        TableColumn inCorsoCol = table.getColumnModel().getColumn(COL_IN_CORSO);
+        inCorsoCol.setPreferredWidth(55);
+        inCorsoCol.setMinWidth(50);
+        inCorsoCol.setMaxWidth(65);
+    }
+
+    private void setFixedColumnWidth(int columnIndex, int width) {
+        TableColumn column = table.getColumnModel().getColumn(columnIndex);
+        column.setPreferredWidth(width);
+        column.setMinWidth(width);
+        column.setMaxWidth(width);
+    }
+
+    private void adjustPazienteColumnWidth() {
+        if (table.getParent() == null) {
+            return;
+        }
+        int viewportWidth = table.getParent().getWidth();
+        if (viewportWidth <= 0) {
+            return;
+        }
+
+        int fixedWidth = 0;
+        for (int col = COL_NUM_PRATICA; col <= COL_IN_CORSO; col++) {
+            fixedWidth += table.getColumnModel().getColumn(col).getWidth();
+        }
+
+        int pazienteWidth = Math.max(PAZIENTE_MIN_WIDTH, viewportWidth - fixedWidth);
+        TableColumn pazienteCol = table.getColumnModel().getColumn(COL_PAZIENTE);
+        pazienteCol.setPreferredWidth(pazienteWidth);
+        pazienteCol.setWidth(pazienteWidth);
+    }
+
     private void refreshRicoveri(DefaultTableModel model) {
         model.setRowCount(0);
+        Map<Integer, Paziente> pazientiById = controller.getPazienti().stream()
+                .collect(Collectors.toMap(Paziente::getIdPaziente, p -> p));
         for (Ricovero r : controller.getRicoveri()) {
+            Paziente paziente = pazientiById.get(r.getIdPaziente());
+            String pazienteLabel = paziente != null ? paziente.toString() : "–";
             model.addRow(new Object[]{
+                    pazienteLabel,
                     r.getNumeroPratica(),
                     r.getCodiceUnivocoLetto(),
                     r.getDataInizioRicovero().format(DATETIME_FMT),
