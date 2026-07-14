@@ -45,7 +45,7 @@ public class AgendaSettimanalePanel extends JPanel {
 
     private void buildUI() {
         JTable table = new JTable(tableModel);
-        table.setRowHeight(40);
+        table.setRowHeight(70);
 
         JButton prevBtn = new JButton("◀ Prec");
         JButton nextBtn = new JButton("Succ ▶");
