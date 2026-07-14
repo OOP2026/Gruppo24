@@ -2,15 +2,12 @@ package gui.panels.medico;
 
 import controller.Controller;
 import model.Medico;
-import model.Paziente;
 import model.Prestazione;
-import model.Ricovero;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static utils.DateFormats.*;

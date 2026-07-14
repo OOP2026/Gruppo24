@@ -143,7 +143,7 @@ public class Controller {
     }
 
     // Ricoveri
-    public Optional<Ricovero> getRicoveroByNumPratica(String numeroPratica) { return ricoveroDao.findById(numeroPratica); };
+    public Optional<Ricovero> getRicoveroByNumPratica(String numeroPratica) { return ricoveroDao.findById(numeroPratica); }
 
     public List<Ricovero> getRicoveri() {
         return ricoveroDao.findAll();
@@ -312,17 +312,11 @@ public class Controller {
     public List<Turno> getTurniPianificatiConMedici(LocalDate da, LocalDate a,
                                                     FasciaOraria fasciaFiltro,
                                                     Integer idMedicoDaEscludere) {
-        List<Turno> result = new ArrayList<>();
-        for (Turno t : getTurniPianificati(da, a)) {
-            if (fasciaFiltro != null && t.getFasciaOraria() != fasciaFiltro)
-                continue;
-            if (idMedicoDaEscludere != null
-                    && t.getMediciAssegnati().stream()
-                        .anyMatch(m -> m.getIdMedico() == idMedicoDaEscludere))
-                continue;
-            result.add(t);
-        }
-        return result;
+        return getTurniPianificati(da, a).stream()
+                .filter(t -> fasciaFiltro == null || t.getFasciaOraria() == fasciaFiltro)
+                .filter(t -> idMedicoDaEscludere == null || t.getMediciAssegnati().stream()
+                        .noneMatch(m -> m.getIdMedico() == idMedicoDaEscludere.intValue()))
+                .toList();
     }
 
     // Turni — assegnazione

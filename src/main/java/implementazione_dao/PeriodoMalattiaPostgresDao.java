@@ -222,37 +222,56 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
             conn.setAutoCommit(false);
 
             try (PreparedStatement psDel = conn.prepareStatement(
-                     "DELETE FROM Svolge_Turno WHERE IdMedico=? AND Data=? AND FasciaOraria=?::fascia_oraria");
+                    "DELETE FROM Svolge_Turno WHERE IdMedico=? AND Data=? AND FasciaOraria=?::fascia_oraria");
                  PreparedStatement psIns = conn.prepareStatement(
-                     "INSERT INTO Svolge_Turno (IdMedico, Data, FasciaOraria) VALUES (?, ?, ?::fascia_oraria)")) {
+                         "INSERT INTO Svolge_Turno (IdMedico, Data, FasciaOraria) VALUES (?, ?, ?::fascia_oraria)")) {
+
                 for (RiassegnazioneTurno t : turni) {
                     psDel.setInt(1, t.idMedicoAssente());
                     psDel.setDate(2, Date.valueOf(t.data()));
                     psDel.setString(3, t.fasciaOraria().name());
-                    psDel.executeUpdate();
+                    psDel.addBatch();
+
                     psIns.setInt(1, t.idSostituto());
                     psIns.setDate(2, Date.valueOf(t.data()));
                     psIns.setString(3, t.fasciaOraria().name());
-                    psIns.executeUpdate();
+                    psIns.addBatch();
+                }
+
+                if (!turni.isEmpty()) {
+                    psDel.executeBatch();
+                    psIns.executeBatch();
                 }
             }
 
             try (PreparedStatement psUp = conn.prepareStatement(
-                     "UPDATE Prestazione SET IdMedico=? WHERE NumeroPratica=? AND NumeroPrestazione=?")) {
+                    "UPDATE Prestazione SET IdMedico=? WHERE NumeroPratica=? AND NumeroPrestazione=?")) {
+
                 for (RiassegnazionePrestazione p : prestazioni) {
                     psUp.setInt(1, p.idSostituto());
                     psUp.setString(2, p.numeroPratica());
                     psUp.setInt(3, p.numeroPrestazione());
-                    psUp.executeUpdate();
+                    psUp.addBatch();
+                }
+
+                if (!prestazioni.isEmpty()) {
+                    psUp.executeBatch();
                 }
             }
 
             conn.commit();
         } catch (SQLException e) {
-            if (conn != null) try { conn.rollback(); } catch (SQLException ignored) { /* rollback best-effort */ }
-            throw new DAOException("Errore durante l'applicazione delle riassegnazioni: " + e.getMessage(), e);
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+            }
+            throw new DAOException("Errore durante l'applicazione delle riassegnazioni in batch: " + e.getMessage(), e);
         } finally {
-            if (conn != null) try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) { /* chiusura best-effort */ }
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) {}
+            }
         }
     }
 

@@ -14,9 +14,8 @@ import java.awt.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.TimeZone;
+import java.util.List;
 
 import static gui.utils.GuiUtils.*;
 import static utils.DateFormats.*;
@@ -27,6 +26,7 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
 
     private static final String FONT_SANS_SERIF = "SansSerif";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN);
+    private static final ZoneId ROMA_ZONE = ZoneId.of(EUROPE_ROME);
 
     private static final String NON_ASSEGNATO       = "NON ASSEGNATO";
     private static final int    COL_MEDICO          = 4;
@@ -54,11 +54,13 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
         };
         this.table = new JTable(tableModel);
         installRigaScopertaRenderer();
-        LocalDate oggi = LocalDate.now(ZoneId.of(EUROPE_ROME));
+
+        LocalDate oggi = LocalDate.now(ROMA_ZONE);
         this.dataField    = new JTextField(oggi.format(DATE_FMT), 10);
         this.dataField.setToolTipText(DATE_FORMAT_PATTERN);
         this.spinnerInizio = buildTimeSpinner();
         this.spinnerFine   = buildTimeSpinner();
+
         LocalDate dal = oggi.with(DayOfWeek.MONDAY);
         LocalDate al  = dal.plusWeeks(3).minusDays(1);
         this.dalField = new JTextField(dal.format(DATE_FMT), 10);
@@ -89,6 +91,7 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
         GuiUtils.addFormRow(form, gbc, 1, "Fascia oraria:", fasciaCombo);
         GuiUtils.addFormRow(form, gbc, 2, "Ora inizio:", spinnerInizio);
         GuiUtils.addFormRow(form, gbc, 3, "Ora fine:", spinnerFine);
+
         JButton pianificaBtn = new JButton("Pianifica Turno");
         pianificaBtn.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
@@ -101,6 +104,7 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
         filtroPanel.add(dalField);
         filtroPanel.add(new JLabel(" Al:"));
         filtroPanel.add(alField);
+
         JButton cercaBtn = new JButton("Cerca");
         cercaBtn.addActionListener(e -> refreshTabella());
         filtroPanel.add(cercaBtn);
@@ -159,8 +163,8 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
             JSpinner newFine    = buildTimeSpinner();
             LocalTime currInizio = LocalTime.parse((String) tableModel.getValueAt(row, 2), timeFmt);
             LocalTime currFine   = LocalTime.parse((String) tableModel.getValueAt(row, 3), timeFmt);
-            setSpinnerTime(newInizio, currInizio.getHour(), currInizio.getMinute());
-            setSpinnerTime(newFine,   currFine.getHour(),   currFine.getMinute());
+            setSpinnerTime(newInizio, currInizio);
+            setSpinnerTime(newFine,   currFine);
 
             JPanel dlg = new JPanel(new GridLayout(2, 2, 4, 4));
             dlg.add(new JLabel("Ora inizio:")); dlg.add(newInizio);
@@ -210,20 +214,24 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
     }
 
     private void refreshTabella() {
-        LocalDate dal = LocalDate.parse(dalField.getText().trim(),DATE_FMT);
-        LocalDate al = LocalDate.parse(alField.getText().trim(),DATE_FMT);
-        tableModel.setRowCount(0);
-        for (Turno t : controller.getTurniPianificati(dal,al)) {
-            String medicoAssegnato = t.isAssegnato()
-                    ? t.getDescrizioneAssegnazione()
-                    : NON_ASSEGNATO;
-            tableModel.addRow(new Object[]{
-                    t.getData().format(DATE_FMT),
-                    t.getFasciaOraria().name(),
-                    t.getOraInizio().format(timeFmt),
-                    t.getOraFine().format(timeFmt),
-                    medicoAssegnato
-            });
+        try {
+            LocalDate dal = LocalDate.parse(dalField.getText().trim(), DATE_FMT);
+            LocalDate al = LocalDate.parse(alField.getText().trim(), DATE_FMT);
+            tableModel.setRowCount(0);
+
+            List<Turno> turni = controller.getTurniPianificati(dal, al);
+            for (Turno t : turni) {
+                String medicoAssegnato = t.isAssegnato() ? t.getDescrizioneAssegnazione() : NON_ASSEGNATO;
+                tableModel.addRow(new Object[]{
+                        t.getData().format(DATE_FMT),
+                        t.getFasciaOraria().name(),
+                        t.getOraInizio().format(timeFmt),
+                        t.getOraFine().format(timeFmt),
+                        medicoAssegnato
+                });
+            }
+        } catch (DateTimeParseException ex) {
+            showError(this, "Intervallo date non valido.");
         }
     }
 
@@ -233,8 +241,7 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
             public Component getTableCellRendererComponent(JTable tbl, Object value,
                                                            boolean isSelected, boolean hasFocus,
                                                            int row, int column) {
-                Component c = super.getTableCellRendererComponent(tbl, value, isSelected,
-                        hasFocus, row, column);
+                Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
                 Object medicoCell = tbl.getModel().getValueAt(row, COL_MEDICO);
                 boolean scoperto = NON_ASSEGNATO.equals(medicoCell);
                 if (isSelected) {
@@ -265,27 +272,22 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
     }
 
     private LocalTime spinnerToLocalTime(JSpinner spinner) {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(EUROPE_ROME));
-        cal.setTime((Date) spinner.getValue());
-        return LocalTime.of(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE));
+        Date date = (Date) spinner.getValue();
+        return date.toInstant().atZone(ROMA_ZONE).toLocalTime();
     }
 
     private void aggiornaSpin(JSpinner inizio, JSpinner fine, FasciaOraria fascia) {
         if (fascia == null) return;
         switch (fascia) {
-            case MATTINA:    setSpinnerTime(inizio, 6, 0);  setSpinnerTime(fine, 14, 0); break;
-            case POMERIGGIO: setSpinnerTime(inizio, 14, 0); setSpinnerTime(fine, 22, 0); break;
-            case NOTTE:      setSpinnerTime(inizio, 22, 0); setSpinnerTime(fine, 6, 0);  break;
-            default: break;
+            case MATTINA    -> { setSpinnerTime(inizio, LocalTime.of(6, 0));  setSpinnerTime(fine, LocalTime.of(14, 0)); }
+            case POMERIGGIO -> { setSpinnerTime(inizio, LocalTime.of(14, 0)); setSpinnerTime(fine, LocalTime.of(22, 0)); }
+            case NOTTE      -> { setSpinnerTime(inizio, LocalTime.of(22, 0)); setSpinnerTime(fine, LocalTime.of(6, 0));  }
         }
     }
 
-    private void setSpinnerTime(JSpinner spinner, int hour, int minute) {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(EUROPE_ROME));
-        cal.set(Calendar.HOUR_OF_DAY, hour);
-        cal.set(Calendar.MINUTE, minute);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        spinner.setValue(cal.getTime());
+    private void setSpinnerTime(JSpinner spinner, LocalTime time) {
+        LocalDateTime ldt = LocalDateTime.of(LocalDate.now(ROMA_ZONE), time);
+        Instant instant = ldt.atZone(ROMA_ZONE).toInstant();
+        spinner.setValue(Date.from(instant));
     }
 }
