@@ -31,7 +31,7 @@ public class AgendaGiornalieraPanel extends JPanel {
         this.medicoCorrente  = medicoCorrente;
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        String[] cols = {"Ora Inizio", "Ora Fine", "Tipo", "N. Pratica", "Esito"};
+        String[] cols = {"Ora Inizio Prestazione", "Ora Fine Prestazione", "Tipo Prestazione", "N. Pratica", "Esito"};
         this.tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
