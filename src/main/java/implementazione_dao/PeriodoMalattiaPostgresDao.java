@@ -4,14 +4,23 @@ import exceptions.DAOException;
 import dao.PeriodoMalattiaDAO;
 import database_connection.ConnessioneDatabase;
 import model.FasciaOraria;
+import model.Medico;
 import model.PeriodoMalattia;
-import model.Sostituto;
+import model.PrestazioneScoperta;
+import model.RiassegnazionePrestazione;
+import model.RiassegnazioneTurno;
+import model.TipoPrestazione;
+import model.TurnoScoperto;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static utils.Messages.DB_ERROR_P0001;
 
 public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
 
@@ -21,6 +30,18 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
             rs.getDate("DataInizioMalattia").toLocalDate(),
             rs.getDate("DataFineMalattia").toLocalDate(),
             rs.getInt("IdMedico")
+        );
+    }
+
+    private Medico mapMedico(ResultSet rs) throws SQLException {
+        return new Medico(
+            rs.getInt("IdMedico"),
+            rs.getString("Login"),
+            rs.getString("Password"),
+            rs.getString("Matricola"),
+            rs.getString("Nome"),
+            rs.getString("Cognome"),
+            rs.getInt("IdReparto")
         );
     }
 
@@ -53,31 +74,186 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
     }
 
     @Override
-    public List<Sostituto> trovaSostituti(int idMedico, LocalDate inizio, LocalDate fine) {
-        String sql = "SELECT Data, FasciaOraria, OraInizio, OraFine, IdSostituto, NomeSostituto, CognomeSostituto FROM trova_sostituti(?, ?, ?)";
-        List<Sostituto> result = new ArrayList<>();
+    public List<TurnoScoperto> trovaTurniScoperti(int idMedico, LocalDate inizio, LocalDate fine) {
+        String turniSql =
+            "SELECT ST.Data, ST.FasciaOraria, T.OraInizio, T.OraFine " +
+            "FROM Svolge_Turno ST " +
+            "JOIN Turno T ON T.Data = ST.Data AND T.FasciaOraria = ST.FasciaOraria " +
+            "WHERE ST.IdMedico = ? AND ST.Data BETWEEN ? AND ? " +
+            "ORDER BY ST.Data, ST.FasciaOraria";
+
+        List<TurnoScoperto> result = new ArrayList<>();
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(turniSql)) {
             ps.setInt(1, idMedico);
             ps.setDate(2, Date.valueOf(inizio));
             ps.setDate(3, Date.valueOf(fine));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    result.add(new Sostituto(
-                        rs.getDate("Data").toLocalDate(),
-                        FasciaOraria.valueOf(rs.getString("FasciaOraria")),
-                        rs.getTime("OraInizio").toLocalTime(),
-                        rs.getTime("OraFine").toLocalTime(),
-                        rs.getInt("IdSostituto"),
-                        rs.getString("NomeSostituto"),
-                        rs.getString("CognomeSostituto")
-                    ));
+                    LocalDate    data   = rs.getDate("Data").toLocalDate();
+                    FasciaOraria fascia = FasciaOraria.valueOf(rs.getString("FasciaOraria"));
+                    LocalTime    oraIn  = rs.getTime("OraInizio").toLocalTime();
+                    LocalTime    oraFin = rs.getTime("OraFine").toLocalTime();
+                    List<Medico> candidati = candidatiPerTurno(conn, idMedico, data, fascia);
+                    result.add(new TurnoScoperto(data, fascia, oraIn, oraFin, candidati));
                 }
             }
         } catch (SQLException e) {
-            throw new DAOException("Errore trovaSostituti: " + e.getMessage(), e);
+            throw new DAOException("Errore trovaTurniScoperti: " + e.getMessage(), e);
         }
         return result;
+    }
+
+    private List<Medico> candidatiPerTurno(Connection conn, int idMedico,
+                                           LocalDate data, FasciaOraria fascia) throws SQLException {
+        String sql =
+            "SELECT M.IdMedico, M.Login, M.Password, M.Matricola, M.Nome, M.Cognome, M.IdReparto " +
+            "FROM Medico M " +
+            "WHERE M.IdReparto = (SELECT IdReparto FROM Medico WHERE IdMedico = ?) " +
+            "  AND M.IdMedico <> ? " +
+            "  AND NOT EXISTS ( " +
+            "      SELECT 1 FROM Svolge_Turno ST2 " +
+            "      WHERE ST2.IdMedico = M.IdMedico AND ST2.Data = ? AND ST2.FasciaOraria = ?::fascia_oraria) " +
+            "  AND NOT EXISTS ( " +
+            "      SELECT 1 FROM Periodo_Malattia PM " +
+            "      WHERE PM.IdMedico = M.IdMedico AND PM.DataInizioMalattia <= ? AND PM.DataFineMalattia >= ?) " +
+            "  AND NOT EXISTS ( " +
+            "      SELECT 1 FROM Prestazione P " +
+            "      JOIN Turno T ON T.Data = ?::date AND T.FasciaOraria = ?::fascia_oraria " +
+            "      WHERE P.IdMedico = M.IdMedico " +
+            "        AND P.DataInizioPrestazione::date = ?::date " +
+            "        AND P.DataInizioPrestazione::time < T.OraFine " +
+            "        AND T.OraInizio < P.DataFinePrestazione::time) " +
+            "ORDER BY M.Cognome, M.Nome";
+
+        List<Medico> candidati = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idMedico);
+            ps.setInt(2, idMedico);
+            ps.setDate(3, Date.valueOf(data));
+            ps.setString(4, fascia.name());
+            ps.setDate(5, Date.valueOf(data));
+            ps.setDate(6, Date.valueOf(data));
+            ps.setDate(7, Date.valueOf(data));
+            ps.setString(8, fascia.name());
+            ps.setDate(9, Date.valueOf(data));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) candidati.add(mapMedico(rs));
+            }
+        }
+        return candidati;
+    }
+
+    @Override
+    public List<PrestazioneScoperta> trovaPrestazioniScoperte(int idMedico, LocalDate inizio, LocalDate fine) {
+        String prestSql =
+            "SELECT NumeroPratica, NumeroPrestazione, DataInizioPrestazione, DataFinePrestazione, TipologiaPrestazione " +
+            "FROM Prestazione " +
+            "WHERE IdMedico = ? AND DataInizioPrestazione::date BETWEEN ? AND ? " +
+            "ORDER BY DataInizioPrestazione";
+
+        List<PrestazioneScoperta> result = new ArrayList<>();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(prestSql)) {
+            ps.setInt(1, idMedico);
+            ps.setDate(2, Date.valueOf(inizio));
+            ps.setDate(3, Date.valueOf(fine));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String        np   = rs.getString("NumeroPratica");
+                    int           n    = rs.getInt("NumeroPrestazione");
+                    LocalDateTime di   = rs.getTimestamp("DataInizioPrestazione").toLocalDateTime();
+                    LocalDateTime df   = rs.getTimestamp("DataFinePrestazione").toLocalDateTime();
+                    TipoPrestazione tipo = TipoPrestazione.valueOf(rs.getString("TipologiaPrestazione"));
+                    List<Medico> candidati = candidatiPerPrestazione(conn, idMedico, di, df);
+                    result.add(new PrestazioneScoperta(np, n, di, df, tipo, candidati));
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("Errore trovaPrestazioniScoperte: " + e.getMessage(), e);
+        }
+        return result;
+    }
+
+    private List<Medico> candidatiPerPrestazione(Connection conn, int idMedico,
+                                                 LocalDateTime inizioPrest, LocalDateTime finePrest) throws SQLException {
+        String sql =
+            "SELECT M.IdMedico, M.Login, M.Password, M.Matricola, M.Nome, M.Cognome, M.IdReparto " +
+            "FROM Medico M " +
+            "WHERE M.IdReparto = (SELECT IdReparto FROM Medico WHERE IdMedico = ?) " +
+            "  AND M.IdMedico <> ? " +
+            "  AND EXISTS ( " +
+            "      SELECT 1 FROM Svolge_Turno ST " +
+            "      JOIN Turno T ON T.Data = ST.Data AND T.FasciaOraria = ST.FasciaOraria " +
+            "      WHERE ST.IdMedico = M.IdMedico " +
+            "        AND T.Data = ?::date AND T.OraInizio <= ?::time AND T.OraFine >= ?::time) " +
+            "  AND NOT EXISTS ( " +
+            "      SELECT 1 FROM Periodo_Malattia PM " +
+            "      WHERE PM.IdMedico = M.IdMedico AND PM.DataInizioMalattia <= ?::date AND PM.DataFineMalattia >= ?::date) " +
+            "  AND NOT EXISTS ( " +
+            "      SELECT 1 FROM Prestazione P " +
+            "      WHERE P.IdMedico = M.IdMedico AND P.DataInizioPrestazione < ? AND P.DataFinePrestazione > ?) " +
+            "ORDER BY M.Cognome, M.Nome";
+
+        List<Medico> candidati = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idMedico);
+            ps.setInt(2, idMedico);
+            ps.setDate(3, Date.valueOf(inizioPrest.toLocalDate()));
+            ps.setTime(4, Time.valueOf(inizioPrest.toLocalTime()));
+            ps.setTime(5, Time.valueOf(finePrest.toLocalTime()));
+            ps.setDate(6, Date.valueOf(inizioPrest.toLocalDate()));
+            ps.setDate(7, Date.valueOf(inizioPrest.toLocalDate()));
+            ps.setTimestamp(8, Timestamp.valueOf(finePrest));
+            ps.setTimestamp(9, Timestamp.valueOf(inizioPrest));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) candidati.add(mapMedico(rs));
+            }
+        }
+        return candidati;
+    }
+
+    @Override
+    public void applicaRiassegnazioni(List<RiassegnazioneTurno> turni,
+                                      List<RiassegnazionePrestazione> prestazioni) {
+        Connection conn = null;
+        try {
+            conn = ConnessioneDatabase.getInstance().getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psDel = conn.prepareStatement(
+                     "DELETE FROM Svolge_Turno WHERE IdMedico=? AND Data=? AND FasciaOraria=?::fascia_oraria");
+                 PreparedStatement psIns = conn.prepareStatement(
+                     "INSERT INTO Svolge_Turno (IdMedico, Data, FasciaOraria) VALUES (?, ?, ?::fascia_oraria)")) {
+                for (RiassegnazioneTurno t : turni) {
+                    psDel.setInt(1, t.idMedicoAssente());
+                    psDel.setDate(2, Date.valueOf(t.data()));
+                    psDel.setString(3, t.fasciaOraria().name());
+                    psDel.executeUpdate();
+                    psIns.setInt(1, t.idSostituto());
+                    psIns.setDate(2, Date.valueOf(t.data()));
+                    psIns.setString(3, t.fasciaOraria().name());
+                    psIns.executeUpdate();
+                }
+            }
+
+            try (PreparedStatement psUp = conn.prepareStatement(
+                     "UPDATE Prestazione SET IdMedico=? WHERE NumeroPratica=? AND NumeroPrestazione=?")) {
+                for (RiassegnazionePrestazione p : prestazioni) {
+                    psUp.setInt(1, p.idSostituto());
+                    psUp.setString(2, p.numeroPratica());
+                    psUp.setInt(3, p.numeroPrestazione());
+                    psUp.executeUpdate();
+                }
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ignored) { /* rollback best-effort */ }
+            throw new DAOException("Errore durante l'applicazione delle riassegnazioni: " + e.getMessage(), e);
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) { /* chiusura best-effort */ }
+        }
     }
 
     @Override
@@ -91,6 +267,12 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
             ps.setInt(4, pm.getIdMedico());
             ps.executeUpdate();
         } catch (SQLException e) {
+            String state = e.getSQLState();
+            if (DB_ERROR_P0001.equals(state)) {
+                throw new DAOException("Il medico ha già un periodo di malattia sovrapposto a quello inserito. Modificare le date.", e);
+            } else if ("23505".equals(state)) {
+                throw new DAOException("Esiste già un certificato con questo codice.", e);
+            }
             throw new DAOException("Errore insert PeriodoMalattia: " + e.getMessage(), e);
         }
     }

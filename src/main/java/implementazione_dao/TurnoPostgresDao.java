@@ -4,13 +4,16 @@ import exceptions.DAOException;
 import dao.TurnoDAO;
 import database_connection.ConnessioneDatabase;
 import model.FasciaOraria;
+import model.Medico;
 import model.Turno;
 
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static utils.Messages.DB_ERROR_P0001;
@@ -53,6 +56,58 @@ public class TurnoPostgresDao implements TurnoDAO {
             throw new DAOException("Errore findAll Turno: " + e.getMessage(), e);
         }
         return result;
+    }
+
+    @Override
+    public List<Turno> findByPeriodoConAssegnazioni(LocalDate dal, LocalDate al) {
+        String sql =
+            "SELECT t.Data, t.FasciaOraria, t.OraInizio, t.OraFine, " +
+            "       m.IdMedico, m.Login, m.Matricola, m.Nome, m.Cognome, m.IdReparto " +
+            "FROM Turno t " +
+            "LEFT JOIN Svolge_Turno st ON st.Data = t.Data AND st.FasciaOraria = t.FasciaOraria " +
+            "LEFT JOIN Medico m       ON m.IdMedico = st.IdMedico " +
+            "WHERE t.Data BETWEEN ? AND ? " +
+            "ORDER BY t.Data, t.OraInizio, m.Cognome NULLS LAST, m.Nome";
+
+        Map<String, Turno> turniPerChiave = new LinkedHashMap<>();
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(dal));
+            ps.setDate(2, Date.valueOf(al));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDate    data   = rs.getDate("Data").toLocalDate();
+                    FasciaOraria fascia = FasciaOraria.valueOf(rs.getString("FasciaOraria"));
+                    String key = data + "|" + fascia.name();
+
+                    Turno turno = turniPerChiave.computeIfAbsent(key, k -> {
+                        try {
+                            return new Turno(data, fascia,
+                                    rs.getTime("OraInizio").toLocalTime(),
+                                    rs.getTime("OraFine").toLocalTime());
+                        } catch (SQLException ex) {
+                            throw new DAOException("Errore mapping Turno: " + ex.getMessage(), ex);
+                        }
+                    });
+
+                    int idMedico = rs.getInt("IdMedico");
+                    if (!rs.wasNull()) {
+                        turno.addMedicoAssegnato(new Medico(
+                                idMedico,
+                                rs.getString("Login"),
+                                null,
+                                rs.getString("Matricola"),
+                                rs.getString("Nome"),
+                                rs.getString("Cognome"),
+                                rs.getInt("IdReparto")
+                        ));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("Errore findByPeriodoConAssegnazioni Turno: " + e.getMessage(), e);
+        }
+        return new ArrayList<>(turniPerChiave.values());
     }
 
     @Override

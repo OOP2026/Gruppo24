@@ -205,8 +205,46 @@ public class Controller {
         periodoMalattiaDao.insert(pm);
     }
 
-    public List<Sostituto> trovaSostituti(int idMedico, LocalDate inizio, LocalDate fine) {
-        return periodoMalattiaDao.trovaSostituti(idMedico, inizio, fine);
+    public List<TurnoScoperto> turniScoperti(int idMedico, LocalDate inizio, LocalDate fine)
+            throws ValidationException {
+        validaPeriodoMalattia(inizio, fine);
+        try {
+            return periodoMalattiaDao.trovaTurniScoperti(idMedico, inizio, fine);
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    public List<PrestazioneScoperta> prestazioniScoperte(int idMedico, LocalDate inizio, LocalDate fine)
+            throws ValidationException {
+        validaPeriodoMalattia(inizio, fine);
+        try {
+            return periodoMalattiaDao.trovaPrestazioniScoperte(idMedico, inizio, fine);
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    public void applicaRiassegnazioni(List<RiassegnazioneTurno> turni,
+                                      List<RiassegnazionePrestazione> prestazioni) throws ValidationException {
+        boolean nessunTurno = turni == null || turni.isEmpty();
+        boolean nessunaPrestazione = prestazioni == null || prestazioni.isEmpty();
+        if (nessunTurno && nessunaPrestazione)
+            throw new ValidationException("Nessuna riassegnazione selezionata.");
+        try {
+            periodoMalattiaDao.applicaRiassegnazioni(
+                    nessunTurno ? List.of() : turni,
+                    nessunaPrestazione ? List.of() : prestazioni);
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
+    private void validaPeriodoMalattia(LocalDate inizio, LocalDate fine) throws ValidationException {
+        if (inizio == null || fine == null)
+            throw new ValidationException("Le date del periodo di malattia sono obbligatorie.");
+        if (fine.isBefore(inizio))
+            throw new ValidationException("La data di fine non può precedere quella di inizio.");
     }
 
     // Agenda medico
@@ -256,13 +294,29 @@ public class Controller {
     }
 
     public List<Turno> getTurniPianificati(LocalDate inizio, LocalDate fine) {
-        List<Turno> result = new ArrayList<>();
-        for (Turno t : turnoDao.findAll()) {
-            if (!t.getData().isBefore(inizio) && !t.getData().isAfter(fine))
-                result.add(t);
-        }
+        if (inizio == null || fine == null)
+            throw new IllegalArgumentException("Date del filtro periodo obbligatorie.");
+        if (fine.isBefore(inizio))
+            throw new IllegalArgumentException("La data di fine non può precedere quella di inizio.");
+        List<Turno> result = turnoDao.findByPeriodoConAssegnazioni(inizio, fine);
         result.sort(java.util.Comparator.comparing(Turno::getData)
                 .thenComparingInt(t -> t.getFasciaOraria().ordinal()));
+        return result;
+    }
+
+    public List<Turno> getTurniPianificatiConMedici(LocalDate da, LocalDate a,
+                                                    FasciaOraria fasciaFiltro,
+                                                    Integer idMedicoDaEscludere) {
+        List<Turno> result = new ArrayList<>();
+        for (Turno t : getTurniPianificati(da, a)) {
+            if (fasciaFiltro != null && t.getFasciaOraria() != fasciaFiltro)
+                continue;
+            if (idMedicoDaEscludere != null
+                    && t.getMediciAssegnati().stream()
+                        .anyMatch(m -> m.getIdMedico() == idMedicoDaEscludere))
+                continue;
+            result.add(t);
+        }
         return result;
     }
 
