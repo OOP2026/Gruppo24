@@ -2,12 +2,15 @@ package gui.panels.medico;
 
 import controller.Controller;
 import model.Medico;
+import model.Paziente;
 import model.Prestazione;
+import model.Ricovero;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static utils.DateFormats.*;
@@ -26,7 +29,7 @@ public class ModificaEsitiPanel extends JPanel {
         this.medicoCorrente = medicoCorrente;
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        String[] cols = {"Data", "Orario", "Tipo", "N. Pratica", "Esito attuale"};
+        String[] cols = {"Paziente", "Data", "Orario", "Tipo", "N. Pratica", "Esito attuale"};
         this.tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -76,13 +79,20 @@ public class ModificaEsitiPanel extends JPanel {
         List<Prestazione> lista = controller.getPrestazioniMedico(medicoCorrente.getIdMedico());
         cache.set(lista);
         tableModel.setRowCount(0);
+
         for (Prestazione p : lista) {
+            String datiPaziente = controller.getRicoveroByNumPratica(p.getNumeroPratica())
+                    .flatMap(ricovero -> controller.getPazienteById(ricovero.getIdPaziente()))
+                    .map(paz -> paz.getCognome() + " " + paz.getNome() + " (" + paz.getCodiceFiscale() + ")")
+                    .orElse("Paziente Sconosciuto");
+
             tableModel.addRow(new Object[]{
-                p.getDataInizioPrestazione().toLocalDate().format(DATE_FMT),
-                p.getDataInizioPrestazione().format(TIME_FMT) + "–" + p.getDataFinePrestazione().format(TIME_FMT),
-                p.getTipologiaPrestazione(),
-                p.getNumeroPratica(),
-                (p.getEsito() == null || p.getEsito().isEmpty()) ? "(non compilato)" : p.getEsito()
+                    datiPaziente,
+                    p.getDataInizioPrestazione().toLocalDate().format(DATE_FMT),
+                    p.getDataInizioPrestazione().format(TIME_FMT) + "–" + p.getDataFinePrestazione().format(TIME_FMT),
+                    p.getTipologiaPrestazione(),
+                    p.getNumeroPratica(),
+                    (p.getEsito() == null || p.getEsito().isEmpty()) ? "(non compilato)" : p.getEsito() //
             });
         }
     }

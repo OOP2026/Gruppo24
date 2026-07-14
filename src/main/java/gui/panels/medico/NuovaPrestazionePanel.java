@@ -1,10 +1,7 @@
 package gui.panels.medico;
 
 import controller.Controller;
-import model.Medico;
-import model.Ricovero;
-import model.TipoPrestazione;
-import model.Turno;
+import model.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -69,7 +66,10 @@ public class NuovaPrestazionePanel extends JPanel {
                 LocalDateTime inizio = LocalDateTime.parse(inizioField.getText().trim(), DATETIME_FMT);
                 LocalDateTime fine   = LocalDateTime.parse(fineField.getText().trim(), DATETIME_FMT);
                 TipoPrestazione tipo = (TipoPrestazione) tipoCombo.getSelectedItem();
+
+                // Nessun record, usi direttamente il Ricovero
                 controller.registraPrestazione(ricovero.getNumeroPratica(), inizio, fine, tipo);
+
                 statusLabel.setForeground(new Color(39, 174, 96));
                 statusLabel.setText("Prestazione registrata con successo.");
                 inizioField.setText("");
@@ -91,6 +91,31 @@ public class NuovaPrestazionePanel extends JPanel {
         ricoveroCombo.removeAllItems();
         controller.getRicoveriInCorso().forEach(ricoveroCombo::addItem);
         if (selezionato != null) ricoveroCombo.setSelectedItem(selezionato);
+    }
+
+    private JComboBox<Ricovero> buildRicoveroCombo() {
+        JComboBox<Ricovero> cb = new JComboBox<>();
+
+        controller.getRicoveriInCorso().forEach(cb::addItem);
+
+        cb.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object v,
+                                                          int idx, boolean sel, boolean focus) {
+                super.getListCellRendererComponent(list, v, idx, sel, focus);
+
+                if (v instanceof Ricovero r) {
+                    controller.getPazienteById(r.getIdPaziente()).ifPresentOrElse(
+                            p -> setText(String.format("%s %s (%s) – Pratica: %s [Letto %s]",
+                                    p.getNome(), p.getCognome(), p.getCodiceFiscale(),
+                                    r.getNumeroPratica(), r.getCodiceUnivocoLetto())),
+                            () -> setText(r.getNumeroPratica() + " – Letto " + r.getCodiceUnivocoLetto())
+                    );
+                }
+                return this;
+            }
+        });
+        return cb;
     }
 
     private JTextArea buildTurniInfo() {
@@ -116,21 +141,5 @@ public class NuovaPrestazionePanel extends JPanel {
             turniInfo.setText(sb.toString());
         }
         return turniInfo;
-    }
-
-    private JComboBox<Ricovero> buildRicoveroCombo() {
-        JComboBox<Ricovero> cb = new JComboBox<>();
-        controller.getRicoveriInCorso().forEach(cb::addItem);
-        cb.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object v,
-                    int idx, boolean sel, boolean focus) {
-                super.getListCellRendererComponent(list, v, idx, sel, focus);
-                if (v instanceof Ricovero r)
-                    setText(r.getNumeroPratica() + " – letto " + r.getCodiceUnivocoLetto());
-                return this;
-            }
-        });
-        return cb;
     }
 }

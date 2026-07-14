@@ -93,6 +93,10 @@ public class Controller {
         return pazienteDao.findAll();
     }
 
+    public Optional<Paziente> getPazienteById(int idPaziente) {
+       return pazienteDao.findById(idPaziente);
+    }
+
     public Paziente aggiungiPaziente(String cf, String nome, String cognome, LocalDate dataNascita) {
         if (cf == null || cf.isBlank())
             throw new IllegalArgumentException("Codice Fiscale obbligatorio.");
@@ -139,6 +143,7 @@ public class Controller {
     }
 
     // Ricoveri
+    public Optional<Ricovero> getRicoveroByNumPratica(String numeroPratica) { return ricoveroDao.findById(numeroPratica); };
 
     public List<Ricovero> getRicoveri() {
         return ricoveroDao.findAll();
