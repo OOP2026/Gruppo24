@@ -19,6 +19,8 @@ public interface PeriodoMalattiaDAO {
     void applicaRiassegnazioni(List<RiassegnazioneTurno> turni,
                                List<RiassegnazionePrestazione> prestazioni);
 
+    boolean isMedicoInMalattia(int idMedico, LocalDate data);
+
     void insert(PeriodoMalattia pm);
     void update(PeriodoMalattia pm);
     void delete(String codiceCertificato);

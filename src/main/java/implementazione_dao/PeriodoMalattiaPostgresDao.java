@@ -288,6 +288,23 @@ public class PeriodoMalattiaPostgresDao implements PeriodoMalattiaDAO {
     }
 
     @Override
+    public boolean isMedicoInMalattia(int idMedico, LocalDate data) {
+        String sql = "SELECT 1 FROM Periodo_Malattia " +
+                "WHERE IdMedico = ? AND DataInizioMalattia <= ? AND DataFineMalattia >= ?";
+        try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idMedico);
+            ps.setDate(2, Date.valueOf(data));
+            ps.setDate(3, Date.valueOf(data));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new DAOException("Errore isMedicoInMalattia: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void insert(PeriodoMalattia pm) {
         String sql = "INSERT INTO Periodo_Malattia (CodiceCertificato, DataInizioMalattia, DataFineMalattia, IdMedico) VALUES (?, ?, ?, ?)";
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();

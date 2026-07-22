@@ -11,8 +11,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static utils.TimeZones.EUROPE_ROME;
 
@@ -209,6 +211,32 @@ public class Controller {
         periodoMalattiaDao.insert(pm);
     }
 
+    public PeriodoMalattia trovaPeriodoMalattia(String codiceCertificato) throws ValidationException {
+        if (codiceCertificato == null || codiceCertificato.isBlank())
+            throw new ValidationException("Codice certificato obbligatorio.");
+        return periodoMalattiaDao.findById(codiceCertificato)
+                .orElseThrow(() -> new ValidationException(
+                        "Nessun periodo di malattia trovato con codice " + codiceCertificato + "."));
+    }
+
+    public void aggiornaPeriodoMalattia(String codiceCertificato,
+                                         LocalDate dataInizio, LocalDate dataFine) throws ValidationException {
+        if (codiceCertificato == null || codiceCertificato.isBlank())
+            throw new ValidationException("Codice certificato obbligatorio.");
+        if (dataInizio == null || dataFine == null)
+            throw new ValidationException("Date obbligatorie.");
+        if (dataFine.isBefore(dataInizio))
+            throw new ValidationException("La data di fine non può precedere quella di inizio.");
+        PeriodoMalattia esistente = periodoMalattiaDao.findById(codiceCertificato)
+                .orElseThrow(() -> new ValidationException(
+                        "Nessun periodo di malattia trovato con codice " + codiceCertificato + "."));
+        try {
+            periodoMalattiaDao.update(new PeriodoMalattia(codiceCertificato, dataInizio, dataFine, esistente.getIdMedico()));
+        } catch (DAOException e) {
+            throw new ValidationException(e.getMessage());
+        }
+    }
+
     public List<TurnoScoperto> turniScoperti(int idMedico, LocalDate inizio, LocalDate fine)
             throws ValidationException {
         validaPeriodoMalattia(inizio, fine);
@@ -315,7 +343,7 @@ public class Controller {
                 .filter(t -> fasciaFiltro == null || t.getFasciaOraria() == fasciaFiltro)
                 .filter(t -> idMedicoDaEscludere == null || t.getMediciAssegnati().stream()
                         .noneMatch(m -> m.getIdMedico() == idMedicoDaEscludere.intValue()))
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     // Turni — assegnazione
@@ -333,6 +361,8 @@ public class Controller {
                     + data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                     + " fascia " + fascia
                     + " non è stato pianificato. Pianificarlo prima nel tab dedicato.");
+        if (periodoMalattiaDao.isMedicoInMalattia(idMedico, data))
+            throw new ValidationException("Il medico è in malattia in questa data e non può essere assegnato al turno.");
         try {
             turnoDao.assegnaTurno(idMedico, data, fascia);
         } catch (DAOException e) {

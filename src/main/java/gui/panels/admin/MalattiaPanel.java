@@ -4,6 +4,7 @@ import controller.Controller;
 import exceptions.ValidationException;
 import gui.utils.GuiUtils;
 import model.Medico;
+import model.PeriodoMalattia;
 import model.PrestazioneScoperta;
 import model.RiassegnazionePrestazione;
 import model.RiassegnazioneTurno;
@@ -43,6 +44,7 @@ public class MalattiaPanel extends JPanel {
     private final JTextField codiceField = new JTextField(15);
     private final JTextField inizioField = new JTextField(DATE_FORMAT_PATTERN, 10);
     private final JTextField fineField   = new JTextField(DATE_FORMAT_PATTERN, 10);
+    private final JTextField caricaCodiceField = new JTextField(15);
 
     private final DefaultTableModel turnoModel;
     private final DefaultTableModel prestazioneModel;
@@ -58,6 +60,7 @@ public class MalattiaPanel extends JPanel {
     private int idMedicoAssente;
     private LocalDate periodoInizio;
     private LocalDate periodoFine;
+    private String codiceCorrente;
 
     public MalattiaPanel(Controller controller) {
         super(new BorderLayout(5, 10));
@@ -116,8 +119,21 @@ public class MalattiaPanel extends JPanel {
         JButton registraBtn = new JButton("Registra Malattia e Cerca Coperture");
         registraBtn.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
         registraBtn.addActionListener(e -> handleRegistra());
+        JButton aggiornaBtn = new JButton("Aggiorna Date Periodo Corrente");
+        aggiornaBtn.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
+        aggiornaBtn.addActionListener(e -> handleAggiornaPeriodo());
+
+        JPanel bottoniPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        bottoniPanel.add(registraBtn);
+        bottoniPanel.add(aggiornaBtn);
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
-        formPanel.add(registraBtn, gbc);
+        formPanel.add(bottoniPanel, gbc);
+
+        GuiUtils.addFormRow(formPanel, gbc, 5, "Carica malattia esistente (codice):", caricaCodiceField);
+        JButton caricaBtn = new JButton("Carica Coperture");
+        caricaBtn.addActionListener(e -> handleCarica());
+        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2;
+        formPanel.add(caricaBtn, gbc);
         return formPanel;
     }
 
@@ -166,14 +182,15 @@ public class MalattiaPanel extends JPanel {
             return;
         }
 
+        String codice = codiceField.getText().trim();
         try {
-            controller.registraPeriodoMalattia(codiceField.getText().trim(),
-                    medico.getIdMedico(), inizio, fine);
+            controller.registraPeriodoMalattia(codice, medico.getIdMedico(), inizio, fine);
         } catch (RuntimeException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
             return;
         }
 
+        codiceCorrente  = codice;
         idMedicoAssente = medico.getIdMedico();
         periodoInizio   = inizio;
         periodoFine     = fine;
@@ -188,6 +205,79 @@ public class MalattiaPanel extends JPanel {
         clearFields(codiceField, inizioField, fineField);
         if (vuoto)
             showInfo(this, "Malattia registrata. Nessun turno o prestazione da riassegnare nel periodo indicato.");
+    }
+
+    private void handleCarica() {
+        String codice = caricaCodiceField.getText().trim();
+        PeriodoMalattia pm;
+        try {
+            pm = controller.trovaPeriodoMalattia(codice);
+        } catch (ValidationException ex) {
+            showError(this, ex.getMessage());
+            return;
+        }
+
+        codiceCorrente  = pm.getCodiceCertificato();
+        idMedicoAssente = pm.getIdMedico();
+        periodoInizio   = pm.getDataInizioMalattia();
+        periodoFine     = pm.getDataFineMalattia();
+        inizioField.setText(periodoInizio.format(DATE_FMT));
+        fineField.setText(periodoFine.format(DATE_FMT));
+        selezionaMedicoCombo(idMedicoAssente);
+
+        boolean vuoto;
+        try {
+            vuoto = caricaScoperti();
+        } catch (ValidationException ex) {
+            showError(this, ex.getMessage());
+            return;
+        }
+        caricaCodiceField.setText("");
+        if (vuoto)
+            showInfo(this, "Malattia caricata. Nessun turno o prestazione da riassegnare nel periodo indicato.");
+    }
+
+    private void handleAggiornaPeriodo() {
+        if (codiceCorrente == null) {
+            showError(this, "Registrare o caricare prima una malattia da aggiornare.");
+            return;
+        }
+
+        LocalDate inizio;
+        LocalDate fine;
+        try {
+            inizio = LocalDate.parse(inizioField.getText().trim(), DATE_FMT);
+            fine   = LocalDate.parse(fineField.getText().trim(), DATE_FMT);
+        } catch (DateTimeParseException ex) {
+            showError(this, DATE_FORMAT_MSG + " " + DATE_FORMAT_PATTERN);
+            return;
+        }
+
+        try {
+            controller.aggiornaPeriodoMalattia(codiceCorrente, inizio, fine);
+        } catch (ValidationException ex) {
+            showError(this, ex.getMessage());
+            return;
+        }
+
+        periodoInizio = inizio;
+        periodoFine   = fine;
+        try {
+            caricaScoperti();
+            showInfo(this, "Periodo di malattia aggiornato.");
+        } catch (ValidationException ex) {
+            showError(this, ex.getMessage());
+        }
+    }
+
+    private void selezionaMedicoCombo(int idMedico) {
+        for (int i = 0; i < medicoCombo.getItemCount(); i++) {
+            Medico m = medicoCombo.getItemAt(i);
+            if (m.getIdMedico() == idMedico) {
+                medicoCombo.setSelectedItem(m);
+                return;
+            }
+        }
     }
 
     private boolean caricaScoperti() throws ValidationException {
