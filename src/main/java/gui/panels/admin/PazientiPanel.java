@@ -1,6 +1,7 @@
 package gui.panels.admin;
 
 import controller.Controller;
+import gui.components.DatePickerField;
 import gui.utils.GuiUtils;
 import model.Paziente;
 
@@ -45,8 +46,7 @@ public class PazientiPanel extends JPanel implements RefreshablePanel {
         JTextField cfField      = new JTextField(15);
         JTextField nomeField    = new JTextField(12);
         JTextField cognomeField = new JTextField(12);
-        JTextField nascitaField = new JTextField(10);
-        nascitaField.setToolTipText("gg/mm/aaaa");
+        DatePickerField nascitaField = new DatePickerField();
 
         GuiUtils.addFormRow(formPanel, gbc, 0, "CF:",           cfField);
         GuiUtils.addFormRow(formPanel, gbc, 1, "Nome:",         nomeField);
@@ -67,16 +67,21 @@ public class PazientiPanel extends JPanel implements RefreshablePanel {
             cfField.setText((String) tableModel.getValueAt(row, 0));
             nomeField.setText((String) tableModel.getValueAt(row, 1));
             cognomeField.setText((String) tableModel.getValueAt(row, 2));
-            nascitaField.setText((String) tableModel.getValueAt(row, 3));
+            nascitaField.setLocalDate(LocalDate.parse((String) tableModel.getValueAt(row, 3), DATE_FMT));
         });
 
         addBtn.addActionListener(e -> {
             try {
-                LocalDate nascita = LocalDate.parse(nascitaField.getText().trim(), DATE_FMT);
+                LocalDate nascita = nascitaField.getLocalDate();
+                if (nascita == null) {
+                    showError(this, "Selezionare la data di nascita.");
+                    return;
+                }
                 controller.aggiungiPaziente(cfField.getText().trim(),
                         nomeField.getText().trim(), cognomeField.getText().trim(), nascita);
                 refreshPazienti();
-                clearFields(cfField, nomeField, cognomeField, nascitaField);
+                clearFields(cfField, nomeField, cognomeField);
+                clearDatePickers(nascitaField);
                 showInfo(this, "Paziente aggiunto con successo.");
             } catch (Exception ex) {
                 showError(this, ex.getMessage());
@@ -88,7 +93,11 @@ public class PazientiPanel extends JPanel implements RefreshablePanel {
             if (row < 0) { showError(this, "Selezionare un paziente dalla tabella."); return; }
             int idPaziente = (int) tableModel.getValueAt(row, 4);
             try {
-                LocalDate nascita = LocalDate.parse(nascitaField.getText().trim(), DATE_FMT);
+                LocalDate nascita = nascitaField.getLocalDate();
+                if (nascita == null) {
+                    showError(this, "Selezionare la data di nascita.");
+                    return;
+                }
                 controller.modificaPaziente(idPaziente, nomeField.getText().trim(),
                         cognomeField.getText().trim(), nascita);
                 refreshPazienti();

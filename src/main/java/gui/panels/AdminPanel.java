@@ -16,12 +16,20 @@ public class AdminPanel extends JPanel {
 
         tabs.addTab("Pazienti",             new PazientiPanel(controller));
         tabs.addTab("Ricoveri",             new RicoveriPanel(controller));
-        tabs.addTab("Malattia",             new MalattiaPanel(controller));
+
+        PianificazioneTurniPanel pianificazioneTurniPanel = new PianificazioneTurniPanel(controller);
+        AssegnazioneTurniPanel assegnazioneTurniPanel = new AssegnazioneTurniPanel(controller);
+        Runnable refreshTurniPanels = () -> {
+            pianificazioneTurniPanel.refresh();
+            assegnazioneTurniPanel.refresh();
+        };
+
+        tabs.addTab("Malattia",             new MalattiaPanel(controller, refreshTurniPanels));
         tabs.addTab("Letti",                new LettiPanel(controller));
         tabs.addTab("Medici",               new MediciPanel(controller));
         tabs.addTab("Dimissioni",           new DimissioniPanel(controller));
-        tabs.addTab("Pianificazione Turni", new PianificazioneTurniPanel(controller));
-        tabs.addTab("Assegnazione Turni",   new AssegnazioneTurniPanel(controller));
+        tabs.addTab("Pianificazione Turni", pianificazioneTurniPanel);
+        tabs.addTab("Assegnazione Turni",   assegnazioneTurniPanel);
 
         tabs.addChangeListener(e -> {
             Component selezionato = tabs.getSelectedComponent();

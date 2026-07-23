@@ -2,6 +2,7 @@ package gui.panels.medico;
 
 import controller.Controller;
 import exceptions.DAOException;
+import gui.components.DatePickerField;
 import model.Medico;
 import model.Prestazione;
 import model.Turno;
@@ -11,7 +12,6 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static utils.DateFormats.*;
@@ -22,7 +22,7 @@ public class AgendaGiornalieraPanel extends JPanel {
     private final transient Controller controller;
     private final transient Medico medicoCorrente;
     private final DefaultTableModel tableModel;
-    private final JTextField dataField;
+    private final DatePickerField dataField;
     private final JLabel turniLabel = new JLabel();
 
     public AgendaGiornalieraPanel(Controller controller, Medico medicoCorrente) {
@@ -35,7 +35,7 @@ public class AgendaGiornalieraPanel extends JPanel {
         this.tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        this.dataField = new JTextField(LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT), 10);
+        this.dataField = new DatePickerField(LocalDate.now(ZoneId.of(EUROPE_ROME)));
         buildUI();
         aggiorna();
     }
@@ -48,13 +48,13 @@ public class AgendaGiornalieraPanel extends JPanel {
         JButton cercaBtn = new JButton("Visualizza");
 
         oggiBtn.addActionListener(e -> {
-            dataField.setText(LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT));
+            dataField.setLocalDate(LocalDate.now(ZoneId.of(EUROPE_ROME)));
             aggiorna();
         });
         cercaBtn.addActionListener(e -> aggiorna());
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        top.add(new JLabel("Data (dd/MM/yyyy):"));
+        top.add(new JLabel("Data:"));
         top.add(dataField);
         top.add(oggiBtn);
         top.add(cercaBtn);
@@ -67,11 +67,13 @@ public class AgendaGiornalieraPanel extends JPanel {
 
     public void aggiorna() {
         try {
-            LocalDate data = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
+            LocalDate data = dataField.getLocalDate();
+            if (data == null) {
+                JOptionPane.showMessageDialog(this, "Selezionare una data.", "Errore", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             popolaPrestazioni(data);
             aggiornaTurniLabel(data);
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this, "Formato data: dd/MM/yyyy", "Errore", JOptionPane.ERROR_MESSAGE);
         } catch (DAOException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Errore DB", JOptionPane.ERROR_MESSAGE);
         }

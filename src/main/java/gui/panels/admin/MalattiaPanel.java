@@ -2,6 +2,7 @@ package gui.panels.admin;
 
 import controller.Controller;
 import exceptions.ValidationException;
+import gui.components.DatePickerField;
 import gui.utils.GuiUtils;
 import model.Medico;
 import model.PeriodoMalattia;
@@ -11,13 +12,15 @@ import model.RiassegnazioneTurno;
 import model.TurnoScoperto;
 
 import javax.swing.*;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import java.awt.*;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
@@ -25,6 +28,7 @@ import java.util.function.IntFunction;
 import static gui.utils.GuiUtils.*;
 import static utils.DateFormats.*;
 import static utils.Messages.*;
+import static utils.TimeZones.EUROPE_ROME;
 
 public class MalattiaPanel extends JPanel {
 
@@ -42,9 +46,9 @@ public class MalattiaPanel extends JPanel {
 
     private final JComboBox<Medico> medicoCombo;
     private final JTextField codiceField = new JTextField(15);
-    private final JTextField inizioField = new JTextField(DATE_FORMAT_PATTERN, 10);
-    private final JTextField fineField   = new JTextField(DATE_FORMAT_PATTERN, 10);
-    private final JTextField caricaCodiceField = new JTextField(15);
+    private final DatePickerField inizioField = new DatePickerField(LocalDate.now(ZoneId.of(EUROPE_ROME)));
+    private final DatePickerField fineField   = new DatePickerField(LocalDate.now(ZoneId.of(EUROPE_ROME)));
+    private final JComboBox<PeriodoMalattia> caricaMalattiaCombo = new JComboBox<>();
 
     private final DefaultTableModel turnoModel;
     private final DefaultTableModel prestazioneModel;
@@ -52,7 +56,9 @@ public class MalattiaPanel extends JPanel {
     private final JTable prestazioneTable;
     private final JLabel turniHeader       = new JLabel("Turni scoperti:");
     private final JLabel prestazioniHeader = new JLabel("Prestazioni scoperte:");
-    private final JButton applicaBtn = new JButton("Applica Riassegnazioni");
+    private final JButton applicaBtn = new JButton("Riassegna Turni e Prestazioni Selezionati");
+
+    private final transient Runnable refreshTurniPanels;
 
     private transient List<TurnoScoperto> turniScopertiList = new ArrayList<>();
     private transient List<PrestazioneScoperta> prestazioniScoperteList = new ArrayList<>();
@@ -63,8 +69,13 @@ public class MalattiaPanel extends JPanel {
     private String codiceCorrente;
 
     public MalattiaPanel(Controller controller) {
+        this(controller, () -> {});
+    }
+
+    public MalattiaPanel(Controller controller, Runnable refreshTurniPanels) {
         super(new BorderLayout(5, 10));
         this.controller = controller;
+        this.refreshTurniPanels = refreshTurniPanels != null ? refreshTurniPanels : () -> {};
         this.medicoCombo = buildMedicoCombo();
 
         this.turnoModel = new DefaultTableModel(new String[]{"Data", "Fascia", "Orario", "Sostituto"}, 0) {
@@ -84,7 +95,44 @@ public class MalattiaPanel extends JPanel {
         this.prestazioneTable = new JTable(prestazioneModel);
 
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        buildCaricaMalattiaCombo();
         buildUI();
+    }
+
+    private void buildCaricaMalattiaCombo() {
+        caricaMalattiaCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value == null) {
+                    setText("-- Seleziona certificato --");
+                    setFont(getFont().deriveFont(Font.ITALIC));
+                } else if (value instanceof PeriodoMalattia pm) {
+                    setFont(getFont().deriveFont(Font.PLAIN));
+                    setText(formatPeriodoMalattia(pm));
+                }
+                return this;
+            }
+        });
+        refreshCaricaMalattiaCombo();
+    }
+
+    private void refreshCaricaMalattiaCombo() {
+        caricaMalattiaCombo.removeAllItems();
+        caricaMalattiaCombo.addItem(null);
+        controller.getPeriodiMalattia().forEach(caricaMalattiaCombo::addItem);
+    }
+
+    private String formatPeriodoMalattia(PeriodoMalattia pm) {
+        String medico = controller.getMedici().stream()
+                .filter(m -> m.getIdMedico() == pm.getIdMedico())
+                .findFirst()
+                .map(MalattiaPanel::formatMedico)
+                .orElse("Medico " + pm.getIdMedico());
+        return pm.getCodiceCertificato() + " — " + medico
+                + " (" + pm.getDataInizioMalattia().format(DATE_FMT)
+                + " – " + pm.getDataFineMalattia().format(DATE_FMT) + ")";
     }
 
     private void buildUI() {
@@ -129,7 +177,7 @@ public class MalattiaPanel extends JPanel {
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         formPanel.add(bottoniPanel, gbc);
 
-        GuiUtils.addFormRow(formPanel, gbc, 5, "Carica malattia esistente (codice):", caricaCodiceField);
+        GuiUtils.addFormRow(formPanel, gbc, 5, "Carica malattia esistente:", caricaMalattiaCombo);
         JButton caricaBtn = new JButton("Carica Coperture");
         caricaBtn.addActionListener(e -> handleCarica());
         gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2;
@@ -157,6 +205,7 @@ public class MalattiaPanel extends JPanel {
     private JPanel buildSudPanel() {
         JPanel sud = new JPanel(new FlowLayout(FlowLayout.LEFT));
         applicaBtn.setFont(new Font(FONT_SANS_SERIF, Font.BOLD, 12));
+        applicaBtn.setToolTipText("Salva le riassegnazioni selezionate nei menu a tendina e aggiorna i panel turni");
         applicaBtn.setEnabled(false);
         applicaBtn.addActionListener(e -> handleApplica());
         sud.add(applicaBtn);
@@ -172,13 +221,10 @@ public class MalattiaPanel extends JPanel {
         Medico medico = (Medico) medicoCombo.getSelectedItem();
         if (medico == null) { showError(this, "Selezionare un medico."); return; }
 
-        LocalDate inizio;
-        LocalDate fine;
-        try {
-            inizio = LocalDate.parse(inizioField.getText().trim(), DATE_FMT);
-            fine   = LocalDate.parse(fineField.getText().trim(), DATE_FMT);
-        } catch (DateTimeParseException ex) {
-            showError(this, DATE_FORMAT_MSG + " " + DATE_FORMAT_PATTERN);
+        LocalDate inizio = inizioField.getLocalDate();
+        LocalDate fine   = fineField.getLocalDate();
+        if (inizio == null || fine == null) {
+            showError(this, "Selezionare le date di inizio e fine malattia.");
             return;
         }
 
@@ -202,18 +248,18 @@ public class MalattiaPanel extends JPanel {
             showError(this, ex.getMessage());
             return;
         }
-        clearFields(codiceField, inizioField, fineField);
+        clearFields(codiceField);
+        clearDatePickers(inizioField, fineField);
+        refreshCaricaMalattiaCombo();
+        refreshTurniPanels.run();
         if (vuoto)
             showInfo(this, "Malattia registrata. Nessun turno o prestazione da riassegnare nel periodo indicato.");
     }
 
     private void handleCarica() {
-        String codice = caricaCodiceField.getText().trim();
-        PeriodoMalattia pm;
-        try {
-            pm = controller.trovaPeriodoMalattia(codice);
-        } catch (ValidationException ex) {
-            showError(this, ex.getMessage());
+        PeriodoMalattia pm = (PeriodoMalattia) caricaMalattiaCombo.getSelectedItem();
+        if (pm == null) {
+            showError(this, "Selezionare un certificato di malattia.");
             return;
         }
 
@@ -221,8 +267,8 @@ public class MalattiaPanel extends JPanel {
         idMedicoAssente = pm.getIdMedico();
         periodoInizio   = pm.getDataInizioMalattia();
         periodoFine     = pm.getDataFineMalattia();
-        inizioField.setText(periodoInizio.format(DATE_FMT));
-        fineField.setText(periodoFine.format(DATE_FMT));
+        inizioField.setLocalDate(periodoInizio);
+        fineField.setLocalDate(periodoFine);
         selezionaMedicoCombo(idMedicoAssente);
 
         boolean vuoto;
@@ -232,7 +278,8 @@ public class MalattiaPanel extends JPanel {
             showError(this, ex.getMessage());
             return;
         }
-        caricaCodiceField.setText("");
+        caricaMalattiaCombo.setSelectedIndex(0);
+        refreshTurniPanels.run();
         if (vuoto)
             showInfo(this, "Malattia caricata. Nessun turno o prestazione da riassegnare nel periodo indicato.");
     }
@@ -243,13 +290,10 @@ public class MalattiaPanel extends JPanel {
             return;
         }
 
-        LocalDate inizio;
-        LocalDate fine;
-        try {
-            inizio = LocalDate.parse(inizioField.getText().trim(), DATE_FMT);
-            fine   = LocalDate.parse(fineField.getText().trim(), DATE_FMT);
-        } catch (DateTimeParseException ex) {
-            showError(this, DATE_FORMAT_MSG + " " + DATE_FORMAT_PATTERN);
+        LocalDate inizio = inizioField.getLocalDate();
+        LocalDate fine   = fineField.getLocalDate();
+        if (inizio == null || fine == null) {
+            showError(this, "Selezionare le date di inizio e fine malattia.");
             return;
         }
 
@@ -262,8 +306,10 @@ public class MalattiaPanel extends JPanel {
 
         periodoInizio = inizio;
         periodoFine   = fine;
+        refreshCaricaMalattiaCombo();
         try {
             caricaScoperti();
+            refreshTurniPanels.run();
             showInfo(this, "Periodo di malattia aggiornato.");
         } catch (ValidationException ex) {
             showError(this, ex.getMessage());
@@ -345,13 +391,25 @@ public class MalattiaPanel extends JPanel {
             controller.applicaRiassegnazioni(turni, prestazioni);
             showInfo(this, "Riassegnazioni applicate con successo.");
             caricaScoperti();
+            refreshTurniPanels.run();
         } catch (ValidationException ex) {
             showError(this, "Errore. Nessuna riassegnazione applicata. " + ex.getMessage());
         }
     }
 
     private void aggiornaStatoApplica() {
-        applicaBtn.setEnabled(haScelte(turnoModel, TURNO_COL_SOST) || haScelte(prestazioneModel, PREST_COL_SOST));
+        applicaBtn.setEnabled(haScelte(turnoModel, TURNO_COL_SOST)
+                || haScelte(prestazioneModel, PREST_COL_SOST)
+                || haSceltaInEditing(turnoTable)
+                || haSceltaInEditing(prestazioneTable));
+    }
+
+    private boolean haSceltaInEditing(JTable table) {
+        if (!table.isEditing()) return false;
+        TableCellEditor editor = table.getCellEditor();
+        if (editor == null) return false;
+        Object value = editor.getCellEditorValue();
+        return value instanceof Medico;
     }
 
     private boolean haScelte(DefaultTableModel model, int col) {
@@ -404,6 +462,20 @@ public class MalattiaPanel extends JPanel {
 
         SostitutoCellEditor(IntFunction<List<Medico>> candidatiPerRiga) {
             this.candidatiPerRiga = candidatiPerRiga;
+            comboBox.addPopupMenuListener(new PopupMenuListener() {
+                @Override public void popupMenuWillBecomeVisible(PopupMenuEvent e) { }
+
+                @Override public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+                    commitEditing();
+                }
+
+                @Override public void popupMenuCanceled(PopupMenuEvent e) {
+                    commitEditing();
+                }
+            });
+            comboBox.addActionListener(e -> {
+                if (!comboBox.isPopupVisible()) commitEditing();
+            });
             comboBox.setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index,
@@ -430,6 +502,11 @@ public class MalattiaPanel extends JPanel {
         @Override
         public Object getCellEditorValue() {
             return comboBox.getSelectedItem();
+        }
+
+        private void commitEditing() {
+            fireEditingStopped();
+            aggiornaStatoApplica();
         }
     }
 }

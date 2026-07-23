@@ -211,6 +211,10 @@ public class Controller {
         periodoMalattiaDao.insert(pm);
     }
 
+    public List<PeriodoMalattia> getPeriodiMalattia() {
+        return periodoMalattiaDao.findAll();
+    }
+
     public PeriodoMalattia trovaPeriodoMalattia(String codiceCertificato) throws ValidationException {
         if (codiceCertificato == null || codiceCertificato.isBlank())
             throw new ValidationException("Codice certificato obbligatorio.");
@@ -348,6 +352,11 @@ public class Controller {
 
     // Turni — assegnazione
 
+    public boolean isMedicoInMalattia(int idMedico, LocalDate data) {
+        if (data == null) return false;
+        return periodoMalattiaDao.isMedicoInMalattia(idMedico, data);
+    }
+
     public void assegnaTurnoAMedico(int idMedico, LocalDate data,
                                      FasciaOraria fascia) throws ValidationException {
         if (data == null)
@@ -426,6 +435,10 @@ public class Controller {
             throw new IllegalArgumentException("La fine deve essere successiva all'inizio.");
         if (!dataInizio.toLocalDate().equals(dataFine.toLocalDate()))
             throw new IllegalArgumentException("La prestazione deve svolgersi in un'unica giornata.");
+        LocalDate giornoPrestazione = dataInizio.toLocalDate();
+        if (periodoMalattiaDao.isMedicoInMalattia(medicoCorrente.getIdMedico(), giornoPrestazione))
+            throw new IllegalArgumentException(
+                    "Non è possibile registrare prestazioni durante un periodo di malattia.");
         ricoveroDao.findById(numeroPratica)
                 .orElseThrow(() -> new IllegalArgumentException("Ricovero " + numeroPratica + " non trovato."));
         Prestazione p = new Prestazione(numeroPratica, 0, dataInizio, dataFine, null, tipo, medicoCorrente.getIdMedico());

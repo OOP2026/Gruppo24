@@ -2,6 +2,7 @@ package gui.panels.admin;
 
 import controller.Controller;
 import exceptions.ValidationException;
+import gui.components.DatePickerField;
 import model.FasciaOraria;
 import model.Medico;
 import model.Turno;
@@ -14,7 +15,6 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,8 +49,8 @@ public class AssegnazioneTurniPanel extends JPanel implements RefreshablePanel {
     private final JComboBox<Medico> medicoCombo = new JComboBox<>();
     private final JComboBox<String> fasciaFiltroCombo = new JComboBox<>();
     private final JCheckBox scopertiCheck = new JCheckBox("Solo turni scoperti");
-    private final JTextField dalField;
-    private final JTextField alField;
+    private final DatePickerField dalField;
+    private final DatePickerField alField;
     private final DefaultTableModel tableModel;
     private final JTable table;
     private final JButton assegnaBtn = new JButton("Assegna Turno Selezionato");
@@ -62,8 +62,8 @@ public class AssegnazioneTurniPanel extends JPanel implements RefreshablePanel {
         controller.getReparti().forEach(r -> repartiMap.put(r.getIdReparto(), r.getNomeReparto()));
 
         LocalDate oggi = LocalDate.now(ZoneId.of(EUROPE_ROME));
-        this.dalField = new JTextField(oggi.format(DATE_FMT), 10);
-        this.alField  = new JTextField(oggi.plusDays(GIORNI_DEFAULT).format(DATE_FMT), 10);
+        this.dalField = new DatePickerField(oggi);
+        this.alField  = new DatePickerField(oggi.plusDays(GIORNI_DEFAULT));
 
         String[] cols = {"Data", "Fascia", "Inizio", "Fine", "Medici assegnati"};
         this.tableModel = new DefaultTableModel(cols, 0) {
@@ -198,8 +198,8 @@ public class AssegnazioneTurniPanel extends JPanel implements RefreshablePanel {
 
     private void ripristinaFiltri() {
         LocalDate oggi = LocalDate.now(ZoneId.of(EUROPE_ROME));
-        dalField.setText(oggi.format(DATE_FMT));
-        alField.setText(oggi.plusDays(GIORNI_DEFAULT).format(DATE_FMT));
+        dalField.setLocalDate(oggi);
+        alField.setLocalDate(oggi.plusDays(GIORNI_DEFAULT));
         fasciaFiltroCombo.setSelectedItem(TUTTE_LE_FASCE);
         scopertiCheck.setSelected(false);
         refreshTabellaTurni();
@@ -211,13 +211,10 @@ public class AssegnazioneTurniPanel extends JPanel implements RefreshablePanel {
     }
 
     private void refreshTabellaTurni() {
-        LocalDate dal;
-        LocalDate al;
-        try {
-            dal = LocalDate.parse(dalField.getText().trim(), DATE_FMT);
-            al  = LocalDate.parse(alField.getText().trim(), DATE_FMT);
-        } catch (DateTimeParseException ex) {
-            showError(this, DATE_FORMAT_MSG_USE + DATE_FORMAT_PATTERN);
+        LocalDate dal = dalField.getLocalDate();
+        LocalDate al  = alField.getLocalDate();
+        if (dal == null || al == null) {
+            showError(this, "Selezionare l'intervallo di date.");
             return;
         }
 
@@ -282,6 +279,10 @@ public class AssegnazioneTurniPanel extends JPanel implements RefreshablePanel {
         Medico medico = (Medico) medicoCombo.getSelectedItem();
         boolean assegnabile = row >= 0 && row < turniCorrenti.size()
                 && medico != null && !isRigaMedicoCorrente(row);
+        if (assegnabile) {
+            Turno turno = turniCorrenti.get(row);
+            assegnabile = !controller.isMedicoInMalattia(medico.getIdMedico(), turno.getData());
+        }
         assegnaBtn.setEnabled(assegnabile);
     }
 
