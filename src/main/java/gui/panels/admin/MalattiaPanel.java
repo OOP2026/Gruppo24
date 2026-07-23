@@ -463,7 +463,9 @@ public class MalattiaPanel extends JPanel {
         SostitutoCellEditor(IntFunction<List<Medico>> candidatiPerRiga) {
             this.candidatiPerRiga = candidatiPerRiga;
             comboBox.addPopupMenuListener(new PopupMenuListener() {
-                @Override public void popupMenuWillBecomeVisible(PopupMenuEvent e) { }
+                @Override public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                    // no-op: nothing to commit when the popup opens, only on close/selection
+                }
 
                 @Override public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
                     commitEditing();

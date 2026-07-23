@@ -12,13 +12,14 @@ import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static gui.utils.GuiUtils.*;
 import static utils.DateFormats.*;
-import static utils.Messages.*;
+import static utils.TimeZones.EUROPE_ROME;
 
 public class RicoveriPanel extends JPanel implements RefreshablePanel {
 
@@ -148,7 +149,7 @@ public class RicoveriPanel extends JPanel implements RefreshablePanel {
             return;
         }
         String numeroPratica = (String) tableModel.getValueAt(row, COL_NUM_PRATICA);
-        DateTimePickerField dimissionePicker = new DateTimePickerField(LocalDateTime.now());
+        DateTimePickerField dimissionePicker = new DateTimePickerField(LocalDateTime.now(ZoneId.of(EUROPE_ROME)));
         int res = JOptionPane.showConfirmDialog(this, dimissionePicker,
                 "Data e ora dimissione", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (res != JOptionPane.OK_OPTION) return;

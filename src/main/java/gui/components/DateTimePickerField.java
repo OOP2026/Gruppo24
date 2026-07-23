@@ -3,7 +3,7 @@ package gui.components;
 import javax.swing.*;
 import java.awt.*;
 import java.time.*;
-import java.util.Date;
+import java.util.Date; // NOSONAR - java.util.Date is required at the JSpinner/SpinnerDateModel boundary, which has no java.time API
 
 import static utils.DateFormats.TIME_FORMAT_PATTERN;
 import static utils.TimeZones.EUROPE_ROME;

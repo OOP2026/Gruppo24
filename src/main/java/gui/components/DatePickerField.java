@@ -7,7 +7,7 @@ import java.awt.*;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Date;
+import java.util.Date; // NOSONAR - java.util.Date is required at the JDateChooser boundary, which has no java.time API
 
 import static utils.DateFormats.DATE_FORMAT_PATTERN;
 import static utils.TimeZones.EUROPE_ROME;

@@ -275,7 +275,7 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
 
     private LocalTime spinnerToLocalTime(JSpinner spinner) {
         Object value = spinner.getValue();
-        if (value instanceof java.util.Date d) {
+        if (value instanceof java.util.Date d) { // NOSONAR - java.util.Date is required at the JSpinner/SpinnerDateModel boundary, which has no java.time API
             return d.toInstant().atZone(ROMA_ZONE).toLocalTime();
         }
         return LocalTime.MIDNIGHT;
@@ -293,6 +293,6 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
     private void setSpinnerTime(JSpinner spinner, LocalTime time) {
         LocalDateTime ldt = LocalDateTime.of(LocalDate.now(ROMA_ZONE), time);
         Instant instant = ldt.atZone(ROMA_ZONE).toInstant();
-        spinner.setValue(new java.util.Date(instant.toEpochMilli()));
+        spinner.setValue(new java.util.Date(instant.toEpochMilli())); // NOSONAR - java.util.Date is required at the JSpinner/SpinnerDateModel boundary, which has no java.time API
     }
 }
