@@ -15,7 +15,7 @@ public class StanzaPostgresDao implements StanzaDAO {
     private Stanza mapRow(ResultSet rs) throws SQLException {
         return new Stanza(
             rs.getInt("IdReparto"),
-            rs.getString("NumeroStanza"),
+            rs.getInt("NumeroStanza"),
             rs.getInt("CapienzaMax")
         );
     }
@@ -71,7 +71,7 @@ public class StanzaPostgresDao implements StanzaDAO {
         try (Connection conn = ConnessioneDatabase.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, s.getIdReparto());
-            ps.setString(2, s.getNumeroStanza());
+            ps.setInt(2, s.getNumeroStanza());
             ps.setInt(3, s.getCapienzaMax());
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -86,7 +86,7 @@ public class StanzaPostgresDao implements StanzaDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, s.getCapienzaMax());
             ps.setInt(2, s.getIdReparto());
-            ps.setString(3, s.getNumeroStanza());
+            ps.setInt(3, s.getNumeroStanza());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new DAOException("Errore update Stanza: " + e.getMessage(), e);
