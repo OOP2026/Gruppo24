@@ -1,6 +1,7 @@
 package gui.panels.admin;
 
 import controller.Controller;
+import gui.components.DateTimePickerField;
 import gui.utils.GuiUtils;
 import model.*;
 
@@ -12,7 +13,6 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -38,8 +38,8 @@ public class RicoveriPanel extends JPanel implements RefreshablePanel {
     private final JComboBox<Paziente> pazienteCombo = new JComboBox<>();
     private final JComboBox<Reparto>  repartoCombo  = new JComboBox<>();
     private final JComboBox<Letto>    lettoCombo    = new JComboBox<>();
-    private final JTextField inizioField = new JTextField(DATE_TIME_FORMAT_PATTERN, 22);
-    private final JTextField fineField   = new JTextField(DATE_TIME_FORMAT_PATTERN + " (facoltativo)", 22);
+    private final DateTimePickerField inizioField = new DateTimePickerField();
+    private final DateTimePickerField fineField   = new DateTimePickerField();
     private final JTextField motivoField = new JTextField(20);
 
     public RicoveriPanel(Controller controller) {
@@ -119,16 +119,19 @@ public class RicoveriPanel extends JPanel implements RefreshablePanel {
                 showError(this, "Selezionare paziente e letto.");
                 return;
             }
-            LocalDateTime inizio = LocalDateTime.parse(inizioField.getText().trim(), DATETIME_FMT);
-            LocalDateTime fine   = parseFineOptional(fineField.getText().trim());
+            LocalDateTime inizio = inizioField.getLocalDateTime();
+            if (inizio == null) {
+                showError(this, "Selezionare la data e ora di inizio.");
+                return;
+            }
+            LocalDateTime fine = fineField.isEmpty() ? null : fineField.getLocalDateTime();
 
             controller.registraRicovero(praticaField.getText().trim(), paz.getIdPaziente(),
                     letto.getCodiceUnivoco(), inizio, fine, motivoField.getText().trim());
             refreshRicoveri(tableModel);
-            clearFields(praticaField, inizioField, fineField, motivoField);
+            clearFields(praticaField, motivoField);
+            clearDateTimePickers(inizioField, fineField);
             showInfo(this, "Ricovero registrato.");
-        } catch (DateTimeParseException ex) {
-            showError(this, DATE_FORMAT_MSG_USE + DATE_TIME_FORMAT_PATTERN);
         } catch (Exception ex) {
             showError(this, ex.getMessage());
         }
@@ -145,29 +148,26 @@ public class RicoveriPanel extends JPanel implements RefreshablePanel {
             return;
         }
         String numeroPratica = (String) tableModel.getValueAt(row, COL_NUM_PRATICA);
-        String dataStr = JOptionPane.showInputDialog(this,
-                "Data e ora dimissione " + DATE_TIME_FORMAT_PATTERN,
-                "Registra Dimissione", JOptionPane.QUESTION_MESSAGE);
-        if (dataStr == null) return;
-        eseguiDimissione(numeroPratica, dataStr.trim());
+        DateTimePickerField dimissionePicker = new DateTimePickerField(LocalDateTime.now());
+        int res = JOptionPane.showConfirmDialog(this, dimissionePicker,
+                "Data e ora dimissione", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (res != JOptionPane.OK_OPTION) return;
+        LocalDateTime dataDimissione = dimissionePicker.getLocalDateTime();
+        if (dataDimissione == null) {
+            showError(this, "Selezionare la data e ora di dimissione.");
+            return;
+        }
+        eseguiDimissione(numeroPratica, dataDimissione);
     }
 
-    private void eseguiDimissione(String numeroPratica, String dataStr) {
+    private void eseguiDimissione(String numeroPratica, LocalDateTime dataDimissione) {
         try {
-            LocalDateTime dataDimissione = LocalDateTime.parse(dataStr, DATETIME_FMT);
             controller.registraDimissione(numeroPratica, dataDimissione);
             refreshRicoveri(tableModel);
             showInfo(this, "Dimissione registrata.");
-        } catch (DateTimeParseException ex) {
-            showError(this, DATE_FORMAT_MSG);
         } catch (Exception ex) {
             showError(this, ex.getMessage());
         }
-    }
-
-    private LocalDateTime parseFineOptional(String fineStr) {
-        if (fineStr.isEmpty() || fineStr.startsWith("dd/MM")) return null;
-        return LocalDateTime.parse(fineStr, DATETIME_FMT);
     }
 
     @Override

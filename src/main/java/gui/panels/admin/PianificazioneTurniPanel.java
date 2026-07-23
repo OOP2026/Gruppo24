@@ -2,6 +2,7 @@ package gui.panels.admin;
 
 import controller.Controller;
 import exceptions.ValidationException;
+import gui.components.DatePickerField;
 import gui.utils.GuiUtils;
 import model.FasciaOraria;
 import model.Turno;
@@ -13,7 +14,6 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static gui.utils.GuiUtils.*;
@@ -36,12 +36,12 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
     private final DefaultTableModel tableModel;
     private final JTable table;
     private final transient DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern(TIME_FORMAT_PATTERN);
-    private final JTextField dataField;
+    private final DatePickerField dataField;
     private final JComboBox<FasciaOraria> fasciaCombo = new JComboBox<>(FasciaOraria.values());
     private final JSpinner spinnerInizio;
     private final JSpinner spinnerFine;
-    private final JTextField dalField;
-    private final JTextField alField;
+    private final DatePickerField dalField;
+    private final DatePickerField alField;
 
     public PianificazioneTurniPanel(Controller controller) {
         super(new BorderLayout(5, 5));
@@ -55,15 +55,14 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
         installRigaScopertaRenderer();
 
         LocalDate oggi = LocalDate.now(ROMA_ZONE);
-        this.dataField    = new JTextField(oggi.format(DATE_FMT), 10);
-        this.dataField.setToolTipText(DATE_FORMAT_PATTERN);
+        this.dataField    = new DatePickerField(oggi);
         this.spinnerInizio = buildTimeSpinner();
         this.spinnerFine   = buildTimeSpinner();
 
         LocalDate dal = oggi.with(DayOfWeek.MONDAY);
         LocalDate al  = dal.plusWeeks(3).minusDays(1);
-        this.dalField = new JTextField(dal.format(DATE_FMT), 10);
-        this.alField  = new JTextField(al.format(DATE_FMT), 10);
+        this.dalField = new DatePickerField(dal);
+        this.alField  = new DatePickerField(al);
 
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         buildUI();
@@ -86,7 +85,7 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(4, 4, 4, 4);
         gbc.fill   = GridBagConstraints.HORIZONTAL;
-        GuiUtils.addFormRow(form, gbc, 0, "Data (" + DATE_FORMAT_PATTERN + "):", dataField);
+        GuiUtils.addFormRow(form, gbc, 0, "Data:", dataField);
         GuiUtils.addFormRow(form, gbc, 1, "Fascia oraria:", fasciaCombo);
         GuiUtils.addFormRow(form, gbc, 2, "Ora inizio:", spinnerInizio);
         GuiUtils.addFormRow(form, gbc, 3, "Ora fine:", spinnerFine);
@@ -135,16 +134,16 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
         FasciaOraria fascia = (FasciaOraria) fasciaCombo.getSelectedItem();
         if (fascia == null) { showError(this, "Selezionare una fascia oraria."); return; }
         try {
-            LocalDate data      = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
+            LocalDate data = dataField.getLocalDate();
+            if (data == null) {
+                showError(this, "Selezionare una data.");
+                return;
+            }
             LocalTime oraInizio = spinnerToLocalTime(spinnerInizio);
             LocalTime oraFine   = spinnerToLocalTime(spinnerFine);
             controller.pianificaTurno(data, fascia, oraInizio, oraFine);
             refreshTabella();
             showInfo(this, "Turno pianificato correttamente.");
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this,
-                    DATE_FORMAT_MSG_USE + DATE_FORMAT_PATTERN,
-                    ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
         } catch (ValidationException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(),
                     ATTENZIONE_MSG, JOptionPane.WARNING_MESSAGE);
@@ -213,9 +212,13 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
     }
 
     private void refreshTabella() {
+        LocalDate dal = dalField.getLocalDate();
+        LocalDate al = alField.getLocalDate();
+        if (dal == null || al == null) {
+            showError(this, "Selezionare l'intervallo di date.");
+            return;
+        }
         try {
-            LocalDate dal = LocalDate.parse(dalField.getText().trim(), DATE_FMT);
-            LocalDate al = LocalDate.parse(alField.getText().trim(), DATE_FMT);
             tableModel.setRowCount(0);
 
             List<Turno> turni = controller.getTurniPianificati(dal, al);
@@ -229,8 +232,8 @@ public class PianificazioneTurniPanel extends JPanel implements RefreshablePanel
                         medicoAssegnato
                 });
             }
-        } catch (DateTimeParseException ex) {
-            showError(this, "Intervallo date non valido.");
+        } catch (Exception ex) {
+            showError(this, ex.getMessage());
         }
     }
 

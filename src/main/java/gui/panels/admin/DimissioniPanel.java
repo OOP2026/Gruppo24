@@ -1,6 +1,7 @@
 package gui.panels.admin;
 
 import controller.Controller;
+import gui.components.DatePickerField;
 import model.PazienteInDimissione;
 
 import javax.swing.*;
@@ -9,13 +10,11 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static gui.utils.GuiUtils.showError;
 import static gui.utils.GuiUtils.showInfo;
 import static utils.DateFormats.*;
-import static utils.Messages.DATE_FORMAT_MSG;
 import static utils.TimeZones.EUROPE_ROME;
 
 public class DimissioniPanel extends JPanel implements RefreshablePanel {
@@ -25,7 +24,7 @@ public class DimissioniPanel extends JPanel implements RefreshablePanel {
 
     private final transient Controller controller;
     private final DefaultTableModel tableModel;
-    private final JTextField dataField;
+    private final DatePickerField dataField;
 
     public DimissioniPanel(Controller controller) {
         super(new BorderLayout(5, 5));
@@ -34,7 +33,7 @@ public class DimissioniPanel extends JPanel implements RefreshablePanel {
                 new String[]{"Paziente", "CF", "Letto", "Dimissione Prevista"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        this.dataField = new JTextField(LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT), 10);
+        this.dataField = new DatePickerField(LocalDate.now(ZoneId.of(EUROPE_ROME)));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         buildUI();
     }
@@ -45,14 +44,14 @@ public class DimissioniPanel extends JPanel implements RefreshablePanel {
         JButton oggiBtn  = new JButton("Oggi");
         JButton cercaBtn = new JButton("Cerca");
         oggiBtn.addActionListener(e -> {
-            dataField.setText(LocalDate.now(ZoneId.of(EUROPE_ROME)).format(DATE_FMT));
+            dataField.setLocalDate(LocalDate.now(ZoneId.of(EUROPE_ROME)));
             cerca(true);
         });
         cercaBtn.addActionListener(e -> cerca(true));
         cerca(false);
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        top.add(new JLabel("Data dimissione " + DATE_FORMAT_PATTERN));
+        top.add(new JLabel("Data dimissione"));
         top.add(dataField);
         top.add(oggiBtn);
         top.add(cercaBtn);
@@ -63,7 +62,11 @@ public class DimissioniPanel extends JPanel implements RefreshablePanel {
 
     private void cerca(boolean avvisaSeVuoto) {
         try {
-            LocalDate data = LocalDate.parse(dataField.getText().trim(), DATE_FMT);
+            LocalDate data = dataField.getLocalDate();
+            if (data == null) {
+                showError(this, "Selezionare una data.");
+                return;
+            }
             List<PazienteInDimissione> risultati = controller.getPazientiInDimissione(data);
             tableModel.setRowCount(0);
             for (PazienteInDimissione pid : risultati) {
@@ -74,10 +77,10 @@ public class DimissioniPanel extends JPanel implements RefreshablePanel {
                     pid.dataDimissione().format(DATETIME_FMT)
                 });
             }
-            if (avvisaSeVuoto && risultati.isEmpty())
-                showInfo(this, "Nessuna dimissione prevista per " + dataField.getText().trim());
-        } catch (DateTimeParseException ex) {
-            showError(this, DATE_FORMAT_MSG + " " + DATE_FORMAT_PATTERN);
+            if (avvisaSeVuoto && risultati.isEmpty()) {
+                showInfo(this, "Nessuna dimissione prevista per "
+                        + data.format(DATE_FMT));
+            }
         } catch (Exception ex) {
             showError(this, ex.getMessage());
         }

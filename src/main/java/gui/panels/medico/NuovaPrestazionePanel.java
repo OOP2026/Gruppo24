@@ -1,6 +1,7 @@
 package gui.panels.medico;
 
 import controller.Controller;
+import gui.components.DateTimePickerField;
 import model.*;
 
 import javax.swing.*;
@@ -8,7 +9,6 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static gui.utils.GuiUtils.addFormRow;
@@ -37,34 +37,56 @@ public class NuovaPrestazionePanel extends JPanel {
         gbc.insets = new Insets(6, 6, 6, 6);
         gbc.fill   = GridBagConstraints.HORIZONTAL;
 
-        JTextField inizioField = new JTextField("dd/MM/yyyy HH:mm", 16);
-        JTextField fineField   = new JTextField("dd/MM/yyyy HH:mm", 16);
+        DateTimePickerField inizioField = new DateTimePickerField();
+        DateTimePickerField fineField   = new DateTimePickerField();
         JComboBox<TipoPrestazione> tipoCombo = new JComboBox<>(TipoPrestazione.values());
+        JLabel malattiaWarning = new JLabel(" ", SwingConstants.CENTER);
+        malattiaWarning.setForeground(new Color(192, 57, 43));
 
         addFormRow(formPanel, gbc, 0, "Ricovero:", ricoveroCombo);
         addFormRow(formPanel, gbc, 1, "Inizio:",   inizioField);
         addFormRow(formPanel, gbc, 2, "Fine:",     fineField);
         addFormRow(formPanel, gbc, 3, "Tipo:",     tipoCombo);
 
-        JTextArea turniInfo = buildTurniInfo();
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
+        formPanel.add(malattiaWarning, gbc);
+
+        JTextArea turniInfo = buildTurniInfo();
+        gbc.gridy = 5;
         formPanel.add(turniInfo, gbc);
 
         JButton registraBtn = new JButton("Registra Prestazione");
         registraBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
-        gbc.gridy = 5;
+        gbc.gridy = 6;
         formPanel.add(registraBtn, gbc);
 
         JLabel statusLabel = new JLabel(" ", SwingConstants.CENTER);
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         formPanel.add(statusLabel, gbc);
+
+        Runnable aggiornaAvvisoMalattia = () -> {
+            LocalDateTime inizio = inizioField.getLocalDateTime();
+            if (inizio != null && controller.isMedicoInMalattia(medicoCorrente.getIdMedico(), inizio.toLocalDate())) {
+                malattiaWarning.setText("Attenzione: sei in malattia in questa data. Non puoi registrare nuove prestazioni.");
+                registraBtn.setEnabled(false);
+            } else {
+                malattiaWarning.setText(" ");
+                registraBtn.setEnabled(true);
+            }
+        };
+        inizioField.addChangeListener(aggiornaAvvisoMalattia);
 
         registraBtn.addActionListener(e -> {
             try {
                 Ricovero ricovero = (Ricovero) ricoveroCombo.getSelectedItem();
                 if (ricovero == null) { statusLabel.setText("Selezionare un ricovero."); return; }
-                LocalDateTime inizio = LocalDateTime.parse(inizioField.getText().trim(), DATETIME_FMT);
-                LocalDateTime fine   = LocalDateTime.parse(fineField.getText().trim(), DATETIME_FMT);
+                LocalDateTime inizio = inizioField.getLocalDateTime();
+                LocalDateTime fine   = fineField.getLocalDateTime();
+                if (inizio == null || fine == null) {
+                    statusLabel.setForeground(Color.RED);
+                    statusLabel.setText("Selezionare data e ora di inizio e fine.");
+                    return;
+                }
                 TipoPrestazione tipo = (TipoPrestazione) tipoCombo.getSelectedItem();
 
                 // Nessun record, usi direttamente il Ricovero
@@ -72,11 +94,8 @@ public class NuovaPrestazionePanel extends JPanel {
 
                 statusLabel.setForeground(new Color(39, 174, 96));
                 statusLabel.setText("Prestazione registrata con successo.");
-                inizioField.setText("");
-                fineField.setText("");
-            } catch (DateTimeParseException ex) {
-                statusLabel.setForeground(Color.RED);
-                statusLabel.setText("Formato data non valido (dd/MM/yyyy HH:mm).");
+                inizioField.clear();
+                fineField.clear();
             } catch (Exception ex) {
                 statusLabel.setForeground(Color.RED);
                 statusLabel.setText(ex.getMessage());

@@ -1,5 +1,8 @@
 package gui.utils;
 
+import gui.components.DatePickerField;
+import gui.components.DateTimePickerField;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -28,6 +31,14 @@ public final class GuiUtils {
 
     public static void clearFields(JTextField... fields) {
         for (JTextField f : fields) f.setText("");
+    }
+
+    public static void clearDatePickers(DatePickerField... fields) {
+        for (DatePickerField f : fields) f.clear();
+    }
+
+    public static void clearDateTimePickers(DateTimePickerField... fields) {
+        for (DateTimePickerField f : fields) f.clear();
     }
 
     public static void showError(JPanel parent, String msg) {
