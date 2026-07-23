@@ -62,8 +62,9 @@ public class AssegnazioneTurniPanel extends JPanel implements RefreshablePanel {
         controller.getReparti().forEach(r -> repartiMap.put(r.getIdReparto(), r.getNomeReparto()));
 
         LocalDate oggi = LocalDate.now(ZoneId.of(EUROPE_ROME));
+        LocalDate finoA = oggi.plusDays(GIORNI_DEFAULT);
         this.dalField = new DatePickerField(oggi);
-        this.alField  = new DatePickerField(oggi.plusDays(GIORNI_DEFAULT));
+        this.alField  = new DatePickerField(finoA);
 
         String[] cols = {"Data", "Fascia", "Inizio", "Fine", "Medici assegnati"};
         this.tableModel = new DefaultTableModel(cols, 0) {
@@ -198,8 +199,9 @@ public class AssegnazioneTurniPanel extends JPanel implements RefreshablePanel {
 
     private void ripristinaFiltri() {
         LocalDate oggi = LocalDate.now(ZoneId.of(EUROPE_ROME));
+        LocalDate finoA = oggi.plusDays(GIORNI_DEFAULT);
         dalField.setLocalDate(oggi);
-        alField.setLocalDate(oggi.plusDays(GIORNI_DEFAULT));
+        alField.setLocalDate(finoA);
         fasciaFiltroCombo.setSelectedItem(TUTTE_LE_FASCE);
         scopertiCheck.setSelected(false);
         refreshTabellaTurni();
